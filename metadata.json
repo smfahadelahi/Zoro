@@ -1,0 +1,6 @@
+{
+  "name": "ZORO LLM",
+  "description": "ZORO is a custom on-device Large Language Model and neural inference engine engineered specifically for Android devices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
