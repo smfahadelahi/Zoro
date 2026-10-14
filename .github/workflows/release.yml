@@ -1,0 +1,72 @@
+name: Build and release ZORO
+on:
+  push:
+    branches: [main, "arena/91f9439d-zoro"]
+    paths:
+      - "index.html"
+      - "prototype/**"
+      - "*.gradle.kts"
+      - "gradle/**"
+      - "gradle.properties"
+      - ".github/workflows/release.yml"
+      - "tests/**"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zoro-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browser test tooling (not app dependencies)
+        run: npm install --no-save playwright@1.64.1 @sparticuz/chromium@153.0.0
+      - name: Test self-contained prototype
+        run: node tests/prototype.cjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Restore prototype signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: zoro-prototype-debug-signing-v1
+      - name: Build installable prototype APK
+        run: ./gradlew :prototype:assembleDebug --no-daemon
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp prototype/build/outputs/apk/debug/prototype-debug.apk release/ZORO-v1.0.0-prototype.apk
+          cp index.html release/ZORO.html
+          cd release
+          sha256sum ZORO-v1.0.0-prototype.apk ZORO.html > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZORO-prototype
+          path: release/
+      - name: Publish downloadable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="prototype-v1.0.0-build.${GITHUB_RUN_NUMBER}"
+          cat > release-notes.md <<'NOTES'
+          ## ZORO — private, offline agent prototype
+          Download **ZORO-v1.0.0-prototype.apk** below for Android 7.0+, or **ZORO.html** for any modern browser.
+
+          This is a fully interactive simulation, not a local LLM runtime. Replies, file attachments, microphone input, and model downloads are simulated. Timers and alarms work only while the prototype is open. Notes and preferences stay on the device. No internet permission or remote requests.
+
+          **Install:** open the APK and allow installation from your download app if Android asks. This is a debug-signed test build, not a production/Play Store release. Signing keys are cached between builds, but if the cache expires you may need to uninstall an older prototype first (which clears its local data). The PIN is a UI simulation, not encryption or production authentication.
+
+          See the repository README for behavior, limitations, testing, and build instructions.
+          NOTES
+          gh release create "$TAG" release/* --target "$GITHUB_SHA" --title "ZORO 1.0 · Prototype build ${GITHUB_RUN_NUMBER}" --notes-file release-notes.md --prerelease
