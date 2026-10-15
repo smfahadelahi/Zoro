@@ -1,0 +1,95 @@
+name: Build and release ZORO
+on:
+  push:
+    branches: [main, "arena/91f9439d-zoro"]
+    paths:
+      - "index.html"
+      - "prototype/**"
+      - "*.gradle.kts"
+      - "gradle/**"
+      - "gradle.properties"
+      - ".github/workflows/release.yml"
+      - "tests/**"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zoro-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test-and-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install browser test tooling (not app dependencies)
+        run: npm install --no-save playwright@1.64.1 @sparticuz/chromium@153.0.0
+      - name: Test self-contained prototype
+        run: node tests/prototype.cjs
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Verify preinstalled Android SDK
+        run: |
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar" || { echo "::error::Android SDK 35 is missing from the runner"; exit 1; }
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Restore prototype signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: zoro-prototype-debug-signing-v1
+      - name: Build installable prototype APK
+        run: |
+          if ! ./gradlew :prototype:assembleDebug --no-daemon > gradle-build.log 2>&1; then
+            cat gradle-build.log
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          text = Path('gradle-build.log').read_text()[-12000:]
+          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print('::error title=Android build failed::' + text)
+          PYLOG
+            exit 1
+          fi
+          cat gradle-build.log
+      - name: Verify offline APK contents
+        run: |
+          APK=prototype/build/outputs/apk/debug/prototype-debug.apk
+          unzip -p "$APK" assets/index.html | cmp index.html
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions "$APK" > apk-permissions.txt
+          grep -q "android.permission.INTERNET" apk-permissions.txt
+          if grep uses-permission apk-permissions.txt | grep -v "android.permission.INTERNET"; then
+            echo "::error::The prototype must only request INTERNET for Hugging Face metadata"
+            exit 1
+          fi
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp prototype/build/outputs/apk/debug/prototype-debug.apk release/ZORO-v1.0.0-prototype.apk
+          cp index.html release/ZORO.html
+          cd release
+          sha256sum ZORO-v1.0.0-prototype.apk ZORO.html > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZORO-prototype
+          path: release/
+      - name: Publish downloadable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="prototype-v1.0.0-build.${GITHUB_RUN_NUMBER}"
+          cat > release-notes.md <<'NOTES'
+          ## ZORO — private, offline agent prototype
+          Download **ZORO-v1.0.0-prototype.apk** below for Android 7.0+, or **ZORO.html** for any modern browser.
+
+          This is a fully interactive simulation, not a local LLM runtime. Replies, file attachments, microphone input, and model downloads are simulated. Timers and alarms work only while the prototype is open. Notes and preferences stay on the device. Hugging Face discovery uses live public metadata and requires internet; chats and notes stay local. Model downloads remain simulated. This build fixes keyboard/composer visibility.
+
+          **Install:** open the APK and allow installation from your download app if Android asks. This is a debug-signed test build, not a production/Play Store release. Signing keys are cached between builds, but if the cache expires you may need to uninstall an older prototype first (which clears its local data). The PIN is a UI simulation, not encryption or production authentication.
+
+          See the repository README for behavior, limitations, testing, and build instructions.
+          NOTES
+          gh release create "$TAG" release/* --target "$GITHUB_SHA" --title "ZORO 1.0 · Prototype build ${GITHUB_RUN_NUMBER}" --notes-file release-notes.md --prerelease

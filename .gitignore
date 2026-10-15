@@ -16,3 +16,13 @@
 local.properties
 .env
 debug.keystore
+
+# Generated prototype artifacts and local test dependencies
+**/build/
+node_modules/
+test-results/
+playwright-report/
+*.apk
+*.aab
+*.jks
+*.keystore

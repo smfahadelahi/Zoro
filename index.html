@@ -1,0 +1,3390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#0D0F14" />
+    <meta
+      name="description"
+      content="ZORO — a private, offline AI agent. Interactive on-device prototype."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src https://huggingface.co; font-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>ZORO · Your intelligence. Your device.</title>
+    <style>
+      /* 01 — Design tokens and the phone shell */
+      :root {
+        color-scheme: dark;
+        --bg: #0d0f14;
+        --surface: #171a21;
+        --raised: #1d212c;
+        --border: #232733;
+        --accent: #4f6bff;
+        --text: #e8eaf0;
+        --muted: #8b92a5;
+        --green: #8bdfb2;
+        --red: #ffa1ad;
+        --amber: #e8bd77;
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "Noto Sans Bengali",
+          Arial,
+          sans-serif;
+        font-size: 16px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #090b10;
+        color: var(--text);
+      }
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+        border: 0;
+        background: none;
+        min-height: 44px;
+        transition:
+          background 0.2s,
+          transform 0.2s,
+          border-color 0.2s;
+      }
+      button:active {
+        transform: scale(0.97);
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
+      button:hover:not(:disabled) {
+        background-color: #ffffff0a;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 2px solid #91a1ff;
+        outline-offset: 3px;
+      }
+      svg {
+        width: 21px;
+        height: 21px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 27px;
+        letter-spacing: -1px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+      h2 {
+        font-size: 22px;
+        letter-spacing: -0.6px;
+      }
+      h3 {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      p {
+        line-height: 1.6;
+      }
+      small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .eyebrow {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      #phone {
+        position: relative;
+        isolation: isolate;
+        width: 100%;
+        height: 100dvh;
+        height: var(--vh, 100dvh);
+        min-height: 0;
+        background: var(--bg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #phone.keyboard-open .suggestions {
+        display: none;
+      }
+      .model-card h3 {
+        overflow-wrap: anywhere;
+      }
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .statusbar {
+        height: 43px;
+        flex-shrink: 0;
+        padding: 13px 26px 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+      .status-right {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .status-right svg {
+        width: 15px;
+        height: 15px;
+      }
+      .battery {
+        width: 22px;
+        height: 10px;
+        border: 1px solid #afb5c5;
+        border-radius: 3px;
+        padding: 1px;
+        position: relative;
+      }
+      .battery:before {
+        content: "";
+        display: block;
+        width: 80%;
+        height: 100%;
+        background: #c9cdd7;
+        border-radius: 1px;
+      }
+      .battery:after {
+        content: "";
+        position: absolute;
+        right: -3px;
+        top: 2px;
+        width: 2px;
+        height: 4px;
+        background: #afb5c5;
+      }
+      .home-indicator {
+        height: 16px;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+      }
+      .home-indicator:after {
+        content: "";
+        width: 104px;
+        height: 4px;
+        border-radius: 4px;
+        background: #e8eaf04a;
+      }
+      .app-top {
+        padding: 9px 15px 12px;
+        border-bottom: 1px solid #ffffff05;
+      }
+      .toprow {
+        display: flex;
+        align-items: center;
+        gap: 1px;
+      }
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        color: #a7aebe;
+      }
+      .icon-btn:hover {
+        color: var(--text);
+      }
+      .model-chip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .model-chip span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 157px;
+      }
+      .model-chip svg {
+        width: 13px;
+        height: 13px;
+        color: var(--muted);
+      }
+      .offline {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        letter-spacing: 0.3px;
+        color: #99b8a8;
+        margin-top: 5px;
+      }
+      .offline svg {
+        width: 12px;
+        height: 12px;
+      }
+      .offline .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      #main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .screen {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        animation: enter 0.2s ease-out;
+      }
+      .screen-head {
+        display: flex;
+        align-items: center;
+        padding: 9px 13px 13px;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .screen-head h2 {
+        font-size: 20px;
+        flex: 1;
+      }
+      .screen-head .icon-btn {
+        margin-left: -4px;
+      }
+      .scroll {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        flex: 1;
+        min-height: 0;
+        padding: 22px 20px;
+        scrollbar-width: thin;
+        scrollbar-color: #303645 transparent;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .between {
+        justify-content: space-between;
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 20px 0;
+      }
+      .primary,
+      .secondary,
+      .danger {
+        border-radius: 13px;
+        padding: 12px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+      .primary {
+        background: var(--accent);
+        color: white;
+      }
+      .primary:hover:not(:disabled) {
+        background: #627bff;
+      }
+      .secondary {
+        background: var(--raised);
+        border: 1px solid var(--border);
+      }
+      .danger {
+        background: #ff637315;
+        color: var(--red);
+        border: 1px solid #ff637326;
+      }
+      .wide {
+        width: 100%;
+      }
+      .link {
+        font-size: 12px;
+        color: #a8b5ff;
+        padding: 8px 4px;
+      }
+      .card {
+        padding: 17px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 17px;
+      }
+      .section-title {
+        margin: 27px 0 12px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1.8px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .section-title:first-child {
+        margin-top: 0;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 7px;
+        border-radius: 6px;
+        background: #8bdfb211;
+        color: var(--green);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .pill.amber {
+        color: var(--amber);
+        background: #e8bd7710;
+      }
+      .pill.red {
+        color: var(--red);
+        background: #ffa1ad10;
+      }
+      .field {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 13px 14px;
+        min-height: 46px;
+        color: var(--text);
+        outline: none;
+        font-size: 14px;
+      }
+      .field::placeholder {
+        color: #70788c;
+      }
+      .field:focus {
+        border-color: var(--accent);
+      }
+      textarea.field {
+        resize: vertical;
+        line-height: 1.6;
+      }
+      select.field {
+        appearance: auto;
+      }
+      .empty {
+        padding: 50px 10px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .empty > svg {
+        width: 34px;
+        height: 34px;
+        color: #68738e;
+      }
+      .empty p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      /* 02 — Chat, orb and agent action cards */
+      #chat-scroll {
+        padding: 0 20px 20px;
+      }
+      .welcome {
+        padding-top: 39px;
+        text-align: center;
+      }
+      .avatar {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        border: 1px solid #6d81ff55;
+        border-radius: 25px;
+        background: linear-gradient(145deg, #28336c, #161c39 65%);
+        box-shadow:
+          0 0 45px #4f6bff17,
+          inset 0 1px 1px #ffffff12;
+        transform: rotate(-7deg);
+      }
+      .avatar svg {
+        width: 35px;
+        height: 35px;
+        stroke: #b0bdff;
+        stroke-width: 1.8;
+        transform: rotate(7deg);
+      }
+      .avatar:after {
+        content: "";
+        width: 5px;
+        height: 5px;
+        background: #a2b0ff;
+        border-radius: 50%;
+        position: absolute;
+        right: -8px;
+        top: 5px;
+        box-shadow: 0 0 12px #667eff;
+      }
+      .wordmark {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 4px;
+        color: #b8c3ff;
+        margin-bottom: 12px;
+      }
+      .welcome h1 {
+        max-width: 275px;
+        margin: auto;
+      }
+      .welcome p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 13px;
+      }
+      .suggestions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 30px;
+        text-align: left;
+      }
+      .suggestion {
+        min-height: 104px;
+        text-align: left;
+        padding: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 13px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .suggestion svg {
+        width: 18px;
+        height: 18px;
+        color: #99aaff;
+      }
+      .suggestion:nth-child(2) svg {
+        color: #c1abeb;
+      }
+      .suggestion:nth-child(3) svg {
+        color: #e5bd8a;
+      }
+      .suggestion:nth-child(4) svg {
+        color: #91cbbd;
+      }
+      .local-caption {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 24px;
+        color: #646d81;
+        font-size: 10px;
+      }
+      .local-caption svg {
+        width: 12px;
+        height: 12px;
+      }
+      .composer-zone {
+        padding: 12px 16px 4px;
+        padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+        background: linear-gradient(transparent, var(--bg) 18%);
+        flex-shrink: 0;
+      }
+      .composer {
+        padding: 7px 5px;
+        display: flex;
+        align-items: flex-end;
+        background: var(--surface);
+        border: 1px solid #2b303d;
+        border-radius: 19px;
+        gap: 0;
+      }
+      .composer textarea {
+        width: 100%;
+        min-height: 42px;
+        max-height: 115px;
+        resize: none;
+        border: 0;
+        outline: none;
+        background: transparent;
+        padding: 12px 5px;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 19px;
+        scrollbar-width: thin;
+      }
+      .composer textarea::placeholder {
+        color: #747d92;
+      }
+      .composer .icon-btn {
+        width: 35px;
+        min-width: 35px;
+        height: 42px;
+      }
+      .composer .send {
+        width: 35px;
+        min-width: 35px;
+        height: 35px;
+        min-height: 35px;
+        margin: 3px 3px 4px 0;
+        border-radius: 11px;
+        background: var(--accent);
+        color: #fff;
+      }
+      .composer .send svg {
+        width: 18px;
+        height: 18px;
+      }
+      .composer-foot {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        color: #6c7589;
+        font-size: 9px;
+        margin-top: 10px;
+        height: 13px;
+      }
+      .composer-foot svg {
+        width: 10px;
+        height: 10px;
+      }
+      .message {
+        margin-top: 22px;
+        animation: enter 0.2s ease-out;
+      }
+      .message.user {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .bubble {
+        padding: 13px 15px;
+        font-size: 14px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .user .bubble {
+        max-width: 88%;
+        background: #4059dd;
+        border-radius: 17px 17px 4px 17px;
+      }
+      .assistant .bubble {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px 17px 17px 17px;
+      }
+      .msg-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 10px;
+        letter-spacing: 1.4px;
+        margin: 0 0 9px;
+        color: #a8b7ff;
+      }
+      .msg-label svg {
+        width: 16px;
+        height: 16px;
+      }
+      .msg-label span {
+        color: #727c93;
+        font-size: 9px;
+        letter-spacing: 0.2px;
+      }
+      .msg-tools {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .msg-tools button {
+        min-height: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 10px;
+        padding: 5px 9px;
+        border-radius: 8px;
+      }
+      .msg-tools svg {
+        width: 13px;
+        height: 13px;
+      }
+      .cursor {
+        display: inline-block;
+        width: 2px;
+        height: 16px;
+        background: #9dacf9;
+        vertical-align: middle;
+        margin-left: 3px;
+        animation: blink 1s infinite;
+      }
+      .typing {
+        display: flex;
+        gap: 4px;
+        height: 22px;
+        align-items: center;
+      }
+      .typing i {
+        height: 5px;
+        width: 5px;
+        background: #a0abcb;
+        border-radius: 50%;
+        animation: blink 1s infinite;
+      }
+      .typing i:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing i:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .action-card {
+        margin-top: 11px;
+        padding: 15px;
+        border: 1px solid #4f6bff40;
+        background: linear-gradient(130deg, #1b2340, #171b29);
+        border-radius: 14px;
+      }
+      .tool-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        background: #4f6bff20;
+        display: grid;
+        place-items: center;
+        color: #a8b7ff;
+        flex-shrink: 0;
+      }
+      .action-card h3 {
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .action-card p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 7px;
+      }
+      .action-card .buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 13px;
+      }
+      .action-card .buttons button {
+        flex: 1;
+        padding: 10px;
+      }
+      .action-status {
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .countdown {
+        font-variant-numeric: tabular-nums;
+        font-size: 26px;
+        letter-spacing: 1px;
+        margin-top: 10px;
+      }
+      .attachment {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: #b3c0ff;
+        padding: 0 8px 9px;
+      }
+      .attachment button {
+        margin-left: auto;
+        min-height: 25px;
+        height: 25px;
+      }
+      /* 03 — Sheets, navigation and form controls */
+      #overlay:empty {
+        display: none;
+      }
+      #overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        background: #0008;
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: flex-end;
+        animation: fade 0.2s;
+      }
+      .sheet {
+        width: 100%;
+        max-height: 88%;
+        background: #12151c;
+        border: 1px solid #2b303c;
+        border-bottom: 0;
+        border-radius: 24px 24px 0 0;
+        padding: 0 20px 23px;
+        display: flex;
+        flex-direction: column;
+        animation: up 0.23s ease-out;
+        box-shadow: 0 -10px 70px #0003;
+      }
+      .handle {
+        width: 32px;
+        height: 4px;
+        background: #3e4556;
+        border-radius: 4px;
+        margin: 10px auto 12px;
+        flex-shrink: 0;
+      }
+      .sheet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        flex-shrink: 0;
+      }
+      .sheet-head h2 {
+        font-size: 20px;
+      }
+      .sheet-head .icon-btn {
+        margin-right: -8px;
+      }
+      .sheet-content {
+        overflow: auto;
+        min-height: 0;
+        scrollbar-width: thin;
+      }
+      .sheet-menu {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        text-align: left;
+        gap: 14px;
+        padding: 12px 5px;
+        border-radius: 12px;
+      }
+      .sheet-menu .tool-icon {
+        background: var(--raised);
+        color: #a7b1ca;
+      }
+      .sheet-menu strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .sheet-menu small {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+      }
+      .sheet-menu > svg {
+        width: 15px;
+        color: var(--muted);
+      }
+      .device-info {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--muted);
+        font-size: 11px;
+        margin-bottom: 16px;
+      }
+      .device-info svg {
+        width: 15px;
+        height: 15px;
+      }
+      .model-card {
+        border-radius: 15px;
+        padding: 14px;
+        margin-bottom: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .model-card.active {
+        border-color: #4f6bff75;
+        background: #4f6bff0c;
+      }
+      .model-card h3 {
+        font-size: 13px;
+      }
+      .model-card .meta {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+      .model-card .row {
+        gap: 7px;
+      }
+      .model-card .model-bottom {
+        margin-top: 12px;
+      }
+      .model-card .primary,
+      .model-card .secondary {
+        font-size: 11px;
+        padding: 6px 12px;
+        min-height: 36px;
+      }
+      .model-card .selected {
+        color: #a8b5ff;
+        font-size: 11px;
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        min-height: 36px;
+      }
+      .model-card .selected svg {
+        width: 15px;
+      }
+      .progress-track {
+        height: 5px;
+        overflow: hidden;
+        background: #2b3140;
+        border-radius: 5px;
+        margin-top: 13px;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 5px;
+        transition: width 0.4s linear;
+      }
+      .download-meta {
+        font-size: 11px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--muted);
+        margin: 9px 0;
+      }
+      .download-card {
+        margin-bottom: 12px;
+      }
+      .download-card h3 {
+        overflow-wrap: anywhere;
+        line-height: 1.5;
+      }
+      .download-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .download-actions button {
+        font-size: 11px;
+        min-height: 38px;
+        padding: 8px 13px;
+      }
+      .switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 13px;
+        min-height: 56px;
+      }
+      .switch-row strong {
+        font-size: 13px;
+        font-weight: 500;
+        display: block;
+      }
+      .switch-row small {
+        font-size: 10px;
+        display: block;
+        line-height: 1.5;
+        margin-top: 3px;
+      }
+      .switch {
+        width: 41px;
+        min-width: 41px;
+        height: 44px;
+        display: grid;
+        align-items: center;
+        padding: 0;
+        background: transparent !important;
+        position: relative;
+      }
+      .switch:before {
+        content: "";
+        height: 23px;
+        width: 41px;
+        border-radius: 20px;
+        background: #353b49;
+        transition: background 0.2s;
+      }
+      .switch:after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 14px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #a3aabb;
+        transition: transform 0.2s;
+      }
+      .switch[aria-checked="true"]:before {
+        background: var(--accent);
+      }
+      .switch[aria-checked="true"]:after {
+        transform: translateX(17px);
+        background: white;
+      }
+      .settings-card {
+        padding: 8px 15px;
+      }
+      .settings-card .switch-row + .switch-row {
+        border-top: 1px solid var(--border);
+      }
+      .form-label {
+        display: block;
+        font-size: 12px;
+        color: #b9bfcd;
+        margin-bottom: 9px;
+      }
+      .tone-options {
+        display: flex;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 4px;
+        gap: 4px;
+      }
+      .tone-options button {
+        flex: 1;
+        font-size: 11px;
+        border-radius: 8px;
+        min-height: 38px;
+      }
+      .tone-options .chosen {
+        background: #4f6bff24;
+        color: #b4bfff;
+      }
+      .fact,
+      .note {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 13px;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: var(--surface);
+        margin-bottom: 9px;
+      }
+      .note p,
+      .fact p {
+        font-size: 13px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .note small {
+        display: block;
+        margin-top: 8px;
+        font-size: 10px;
+      }
+      .note .icon-btn,
+      .fact .icon-btn {
+        width: 36px;
+        min-width: 36px;
+      }
+      .note > svg {
+        width: 17px;
+        color: var(--amber);
+        margin-top: 6px;
+      }
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        background: #e8bd7710;
+        color: var(--amber);
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        line-height: 1.6;
+        border: 1px solid #e8bd7720;
+      }
+      .notice svg {
+        width: 16px;
+        height: 16px;
+        margin-top: 1px;
+      }
+      .repo {
+        width: 100%;
+        text-align: left;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+        display: block;
+      }
+      .repo h3 {
+        font-size: 13px;
+        overflow-wrap: anywhere;
+        line-height: 1.6;
+      }
+      .repo .meta {
+        font-size: 10px;
+        color: var(--muted);
+        display: flex;
+        gap: 14px;
+        margin-top: 9px;
+        align-items: center;
+      }
+      .repo .meta svg {
+        width: 12px;
+        height: 12px;
+      }
+      .repo .meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .search-row {
+        display: flex;
+        gap: 8px;
+        margin: 19px 0;
+      }
+      .search-row input {
+        min-width: 0;
+      }
+      .search-row button {
+        padding: 10px 13px;
+      }
+      .drawer {
+        align-self: stretch;
+        width: 87%;
+        max-width: 335px;
+        background: #12151c;
+        padding: 25px 17px;
+        display: flex;
+        flex-direction: column;
+        animation: fromleft 0.2s;
+        box-shadow: 10px 0 50px #0006;
+      }
+      .drawer .scroll {
+        padding: 10px 0;
+      }
+      .history-item {
+        display: flex;
+        align-items: center;
+        border-radius: 12px;
+        margin: 4px 0;
+      }
+      .history-item.current {
+        background: #4f6bff15;
+      }
+      .history-open {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        padding: 12px 10px;
+        font-size: 12px;
+      }
+      .history-open svg {
+        width: 16px;
+        color: var(--muted);
+      }
+      .history-open span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .history-item .icon-btn {
+        width: 38px;
+      }
+      .history-item .icon-btn svg {
+        width: 15px;
+      }
+      .drawer-foot {
+        font-size: 10px;
+        color: var(--muted);
+        padding-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .drawer-foot svg {
+        width: 14px;
+      }
+      .modal {
+        margin: auto 20px;
+        width: calc(100% - 40px);
+        padding: 24px;
+        border-radius: 22px;
+        background: #1a1e28;
+        border: 1px solid #363d4f;
+        animation: enter 0.2s;
+      }
+      .modal h2 {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      .modal p {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+      .modal .buttons {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+      .error-text {
+        font-size: 12px;
+        color: var(--red);
+        margin-top: 10px;
+        min-height: 18px;
+      }
+      .pin {
+        font-size: 28px;
+        letter-spacing: 14px;
+        text-align: center;
+        padding-left: 27px;
+      }
+      .toast {
+        position: absolute;
+        bottom: 101px;
+        left: 20px;
+        right: 20px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 13px 15px;
+        border: 1px solid #3a4256;
+        border-radius: 13px;
+        background: #242a39;
+        box-shadow: 0 8px 30px #0006;
+        font-size: 12px;
+        animation: up 0.2s;
+        line-height: 1.5;
+      }
+      .toast svg {
+        width: 16px;
+        height: 16px;
+        color: var(--green);
+      }
+      .toast.error svg {
+        color: var(--red);
+      }
+      #toast:empty {
+        display: none;
+      }
+      /* 04 — First-run welcome */
+      .onboarding {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 8px 27px 21px;
+        background: radial-gradient(
+          ellipse at 55% 35%,
+          #4f6bff0e,
+          transparent 60%
+        );
+      }
+      .onboard-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 3px;
+      }
+      .brand svg {
+        color: #a8b5ff;
+        width: 22px;
+      }
+      .skip {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .onboard-art {
+        position: relative;
+        flex: 1;
+        min-height: 150px;
+        max-height: 300px;
+        display: grid;
+        place-items: center;
+      }
+      .orbit {
+        width: 218px;
+        height: 218px;
+        border: 1px solid #4f6bff16;
+        border-radius: 50%;
+        position: relative;
+        display: grid;
+        place-items: center;
+      }
+      .orbit:before {
+        content: "";
+        position: absolute;
+        inset: 22px;
+        border: 1px dashed #4f6bff21;
+        border-radius: 50%;
+      }
+      .orbit:after {
+        content: "";
+        position: absolute;
+        inset: 46px;
+        border: 1px solid #4f6bff25;
+        border-radius: 50%;
+      }
+      .orbit .avatar {
+        margin: 0;
+        width: 91px;
+        height: 91px;
+        border-radius: 29px;
+        z-index: 1;
+        box-shadow: 0 0 80px #4f6bff25;
+      }
+      .orbit .avatar svg {
+        width: 43px;
+        height: 43px;
+      }
+      .orbit-chip {
+        position: absolute;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #30384e;
+        padding: 8px 11px;
+        border-radius: 10px;
+        background: #171c2b;
+        z-index: 2;
+        color: #b2bdd8;
+      }
+      .orbit-chip svg {
+        width: 13px;
+        height: 13px;
+      }
+      .orbit-chip.one {
+        top: 35px;
+        right: -7px;
+        transform: rotate(7deg);
+      }
+      .orbit-chip.two {
+        bottom: 24px;
+        left: -9px;
+        transform: rotate(-7deg);
+      }
+      .onboard-copy {
+        text-align: center;
+        padding: 12px 0 25px;
+      }
+      .onboard-copy h1 {
+        font-size: 35px;
+        line-height: 1.16;
+        letter-spacing: -1.5px;
+        white-space: pre-line;
+      }
+      .onboard-copy h1 em {
+        color: #8d9fff;
+        font-style: normal;
+      }
+      .onboard-copy p {
+        font-size: 13px;
+        line-height: 1.8;
+        color: var(--muted);
+        max-width: 290px;
+        margin: 17px auto 0;
+      }
+      .dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin: 8px 0 22px;
+      }
+      .dots button {
+        position: relative;
+        width: 20px;
+        height: 24px;
+        min-height: 44px;
+        padding: 0;
+      }
+      .dots button:after {
+        content: "";
+        display: block;
+        width: 5px;
+        height: 5px;
+        margin: auto;
+        background: #3a4051;
+        border-radius: 6px;
+      }
+      .dots .active:after {
+        background: #8799ff;
+        width: 19px;
+      }
+      .onboard-bottom {
+        margin-top: auto;
+      }
+      .onboard-bottom .primary {
+        min-height: 51px;
+        border-radius: 15px;
+        font-size: 13px;
+        justify-content: space-between;
+        padding: 12px 20px;
+      }
+      .onboard-fine {
+        text-align: center;
+        font-size: 10px;
+        color: #697287;
+        margin: 15px 0 0;
+      }
+      .onboard-fine svg {
+        width: 11px;
+        height: 11px;
+        vertical-align: -2px;
+        margin-right: 4px;
+      }
+      .lock-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        height: 100%;
+        gap: 20px;
+        text-align: center;
+      }
+      .lock-screen p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.2;
+        }
+      }
+      @keyframes enter {
+        from {
+          opacity: 0;
+          transform: translateX(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes up {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes fromleft {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: none;
+        }
+      }
+      @media (min-width: 600px) {
+        body {
+          min-height: var(--vh, 100dvh);
+          display: grid;
+          place-items: center;
+          padding: 28px;
+          background: radial-gradient(
+            ellipse at 50% 40%,
+            #1c2338 0%,
+            #0b0d14 55%,
+            #080a0e 100%
+          );
+        }
+        #phone {
+          max-width: 400px;
+          height: min(850px, calc(var(--vh, 100dvh) - 56px));
+          min-height: 0;
+          border: 7px solid #252934;
+          border-radius: 43px;
+          box-shadow:
+            0 0 0 1px #454c5b,
+            0 25px 100px #0008;
+        }
+        .statusbar {
+          height: 39px;
+        }
+        .sheet {
+          padding-bottom: 25px;
+        }
+      }
+      @media (max-height: 720px) {
+        .welcome {
+          padding-top: 23px;
+        }
+        .avatar {
+          width: 60px;
+          height: 60px;
+          margin-bottom: 18px;
+        }
+        .welcome h1 {
+          font-size: 25px;
+        }
+        .suggestions {
+          margin-top: 22px;
+        }
+        .suggestion {
+          min-height: 90px;
+          gap: 8px;
+        }
+        .local-caption {
+          margin-top: 16px;
+        }
+        .onboard-art {
+          max-height: 220px;
+        }
+        .onboard-copy h1 {
+          font-size: 30px;
+        }
+        .onboard-copy {
+          padding-bottom: 12px;
+        }
+        .dots {
+          margin: 0 0 8px;
+        }
+      }
+      /* Keep the interactive hit area at least 44px, including compact visual controls. */
+      button {
+        min-width: 44px;
+      }
+      .composer .icon-btn,
+      .composer .send {
+        width: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        height: 44px;
+      }
+      .composer .send {
+        margin: 0;
+      }
+      .msg-tools button,
+      .model-card .primary,
+      .model-card .secondary,
+      .download-actions button,
+      .tone-options button,
+      .attachment button {
+        min-height: 44px;
+        height: auto;
+      }
+      .dots button {
+        width: 44px;
+      }
+      .note .icon-btn,
+      .fact .icon-btn,
+      .history-item .icon-btn {
+        width: 44px;
+        min-width: 44px;
+      }
+      .switch {
+        min-width: 44px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *:before,
+        *:after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="phone">
+      <div class="statusbar" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <div class="status-right">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 19v-3m5 3v-7m5 7V8m5 11V4" stroke-width="3" /></svg
+          ><span style="font-size: 9px; color: #9da7bd">OFFLINE</span>
+          <div class="battery"></div>
+        </div>
+      </div>
+      <main id="main"></main>
+      <div class="home-indicator" aria-hidden="true"></div>
+      <div id="overlay"></div>
+      <div id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script>
+      "use strict";
+      /* 05 — Icons, safe markup, language dictionary */
+      const paths = {
+        spark: "M12 3l2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3z",
+        history: "M4 5h16v14H4z M8 5v14 M11 9h6 M11 13h4",
+        new: "M13 5H5v14h14v-8 M15 4l5 5 M10 14l1-5 7-7 5 5-7 7-6 1z",
+        settings:
+          "M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
+        chevron: "M9 5l7 7-7 7",
+        down: "M7 10l5 5 5-5",
+        back: "M19 12H5 M11 6l-6 6 6 6",
+        close: "M6 6l12 12 M6 18L18 6",
+        plus: "M12 5v14 M5 12h14",
+        timer:
+          "M9 2h6 M12 6a8 8 0 1 0 0 16 8 8 0 0 0 0-16 M12 10v4l3 2 M18 5l2 2",
+        alarm:
+          "M12 6a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M12 9v4l3 2 M4 3L1 6 M20 3l3 3 M6 19l-2 3 M18 19l2 3",
+        note: "M5 3h11l4 4v14H5z M15 3v5h5 M9 12h7 M9 16h5",
+        lock: "M7 10V7a5 5 0 0 1 10 0v3 M5 10h14v11H5z M12 14v3",
+        shield: "M12 2l8 3v7c0 5-8 10-8 10S4 17 4 12V5z M8 11l3 3 5-5",
+        send: "M12 19V5 M5 12l7-7 7 7",
+        mic: "M9 4a3 3 0 0 1 6 0v8a3 3 0 0 1-6 0z M6 10v2a6 6 0 0 0 12 0v-2 M12 18v4 M9 22h6",
+        stop: "M6 6h12v12H6z",
+        copy: "M9 9h12v12H9z M15 5V2H2v13h3",
+        refresh: "M20 10a8 8 0 1 0-1 8 M20 3v7h-7",
+        check: "M5 12l4 4L19 6",
+        download: "M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5",
+        trash: "M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7",
+        file: "M5 2h9l5 5v15H5z M14 2v6h5",
+        phone: "M7 2h10v20H7z M11 18h2",
+        search: "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M15 15l6 6",
+        heart: "M12 21S1 14 2 7c1-5 7-5 10-1 3-4 9-4 10 1 1 7-10 14-10 14z",
+        info: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M12 11v6 M12 7h.01",
+        chat: "M3 3h18v14H8l-5 4z",
+        pause: "M8 5v14 M16 5v14",
+        play: "M7 4l13 8-13 8z",
+        brain:
+          "M9 4c-4-2-7 3-5 6-4 3-1 9 3 8 0 4 5 4 5 0V6c0-3-3-4-3-2 M15 4c4-2 7 3 5 6 4 3 1 9-3 8 0 4-5 4-5 0 M7 9l5 3 M17 9l-5 3",
+        wifi: "M2 8a16 16 0 0 1 20 0 M5 12a11 11 0 0 1 14 0 M8 16a6 6 0 0 1 8 0 M12 20h.01",
+        folder: "M3 5h7l2 3h9v12H3z",
+      };
+      function icon(n) {
+        return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[n] || paths.spark}"/></svg>`;
+      }
+      function esc(v) {
+        return String(v ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+      const bn = {
+        History: "ইতিহাস",
+        "New chat": "নতুন চ্যাট",
+        Settings: "সেটিংস",
+        Models: "মডেল",
+        "Running fully on-device": "সম্পূর্ণ ডিভাইসেই চলছে",
+        "How can I help you today?": "আজ কীভাবে সাহায্য করতে পারি?",
+        "A little intelligence. All yours.": "একটু বুদ্ধিমত্তা। পুরোটাই আপনার।",
+        "Set a timer for 10 minutes": "১০ মিনিটের টাইমার দিন",
+        "Set an alarm for 7:00 AM": "সকাল ৭টার অ্যালার্ম দিন",
+        "Save a note": "একটি নোট রাখুন",
+        "Explain quantum computing simply": "কোয়ান্টাম কম্পিউটিং সহজে বোঝান",
+        "Your thoughts stay on your device": "আপনার কথা আপনার ডিভাইসেই থাকে",
+        "Message ZORO…": "জোরোকে লিখুন…",
+        "Prototype · Simulated AI, real privacy":
+          "প্রোটোটাইপ · অনুকরণ এআই, সত্যিকারের গোপনীয়তা",
+        "More options": "আরও বিকল্প",
+        "Send message": "বার্তা পাঠান",
+        "Stop generating": "উত্তর থামান",
+        Microphone: "মাইক্রোফোন",
+        "Listening… (simulated)": "শুনছি… (অনুকরণ)",
+        Copy: "কপি",
+        Regenerate: "আবার লিখুন",
+        Confirm: "নিশ্চিত করুন",
+        Cancel: "বাতিল",
+        Done: "সম্পন্ন",
+        Cancelled: "বাতিল হয়েছে",
+        "Needs confirmation": "অনুমতি প্রয়োজন",
+        Timer: "টাইমার",
+        Alarm: "অ্যালার্ম",
+        Notes: "নোট",
+        "Attach file": "ফাইল যুক্ত করুন",
+        "Choose a sample file": "নমুনা ফাইল বেছে নিন",
+        "Saved, just for you": "শুধু আপনার জন্য সংরক্ষিত",
+        "Active timers and alarms": "সক্রিয় টাইমার ও অ্যালার্ম",
+        "Keep track of your day": "দিনের সময়ের হিসাব রাখুন",
+        "Your phone: 6 GB RAM": "আপনার ফোন: ৬ জিবি র‍্যাম",
+        "Runs well": "ভালো চলবে",
+        "May be slow": "ধীর হতে পারে",
+        "Too large": "খুব বড়",
+        Download: "ডাউনলোড",
+        Downloading: "ডাউনলোড হচ্ছে",
+        Select: "বেছে নিন",
+        Active: "সক্রিয়",
+        "Add models from Hugging Face": "Hugging Face থেকে মডেল যোগ করুন",
+        "Download manager": "ডাউনলোড ম্যানেজার",
+        Downloads: "ডাউনলোড",
+        "Not enough RAM for this model": "এই মডেলের জন্য পর্যাপ্ত র‍্যাম নেই",
+        "Wi-Fi only": "শুধু ওয়াই-ফাই",
+        "Simulated connection: Wi-Fi": "অনুকরণ সংযোগ: ওয়াই-ফাই",
+        Pause: "বিরতি",
+        Resume: "চালু করুন",
+        Paused: "বিরতিতে",
+        Completed: "সম্পন্ন",
+        Delete: "মুছুন",
+        "No downloads yet": "এখনও কোনো ডাউনলোড নেই",
+        "Choose a model to get started.": "শুরু করতে একটি মডেল বেছে নিন।",
+        "Browse models": "মডেল দেখুন",
+        "Community models, not tested by ZORO":
+          "কমিউনিটির মডেল, জোরো দ্বারা পরীক্ষিত নয়",
+        Search: "খুঁজুন",
+        "Search GGUF models…": "GGUF মডেল খুঁজুন…",
+        "Search to find downloadable GGUF models.":
+          "ডাউনলোডযোগ্য GGUF মডেল খুঁজতে অনুসন্ধান করুন।",
+        "No models found": "কোনো মডেল পাওয়া যায়নি",
+        "Try Qwen, Llama, or Gemma.": "Qwen, Llama বা Gemma খুঁজুন।",
+        "Searching local catalog…": "স্থানীয় তালিকায় খোঁজা হচ্ছে…",
+        Today: "আজ",
+        Yesterday: "গতকাল",
+        Earlier: "আগে",
+        "Search chats…": "চ্যাট খুঁজুন…",
+        "No chats yet": "এখনও কোনো চ্যাট নেই",
+        "No matching chats": "মিলে যাওয়া চ্যাট নেই",
+        "Session only · never uploaded": "শুধু এই সেশন · আপলোড হয় না",
+        "AI Personalization": "এআই ব্যক্তিগতকরণ",
+        "System prompt": "সিস্টেম নির্দেশনা",
+        Tone: "কথার ধরন",
+        Friendly: "বন্ধুত্বপূর্ণ",
+        Professional: "পেশাদার",
+        Concise: "সংক্ষিপ্ত",
+        "Agent Tools": "এজেন্ট টুল",
+        "Ask before acting": "কাজের আগে অনুমতি নিন",
+        "Review each action first": "আগে প্রতিটি কাজ যাচাই করুন",
+        Memory: "স্মৃতি",
+        "Add a fact": "একটি তথ্য যোগ করুন",
+        "No remembered facts yet.": "এখনও কোনো তথ্য মনে রাখা হয়নি।",
+        Language: "ভাষা",
+        "App lock": "অ্যাপ লক",
+        "Protect with a 4-digit PIN": "৪ সংখ্যার পিন ব্যবহার করুন",
+        "Data and Privacy": "ডেটা ও গোপনীয়তা",
+        "Delete all data": "সব ডেটা মুছুন",
+        About: "পরিচিতি",
+        "ZORO v1.0, powered by on-device AI, no data leaves your phone.":
+          "জোরো v1.0, ডিভাইসের এআই দ্বারা চালিত, কোনো তথ্য ফোনের বাইরে যায় না।",
+        "This prototype simulates inference and downloads.":
+          "এই প্রোটোটাইপে উত্তর ও ডাউনলোড অনুকরণ করা হয়।",
+        Back: "ফিরুন",
+        Close: "বন্ধ করুন",
+        Saved: "সংরক্ষিত",
+        Add: "যোগ করুন",
+        "No notes yet": "এখনও কোনো নোট নেই",
+        "Ask ZORO to save something worth remembering.":
+          "মনে রাখার মতো কিছু সংরক্ষণ করতে জোরোকে বলুন।",
+        "Nothing ticking yet": "এখনও কোনো টাইমার নেই",
+        "Ask ZORO to set a timer or an alarm.":
+          "জোরোকে টাইমার বা অ্যালার্ম দিতে বলুন।",
+        "Timers and alarms run only while this prototype is open.":
+          "এই প্রোটোটাইপ খোলা থাকলেই টাইমার ও অ্যালার্ম চলবে।",
+        "Set up app lock": "অ্যাপ লক সেট করুন",
+        "Enter a 4-digit PIN": "৪ সংখ্যার পিন দিন",
+        "Save PIN": "পিন সংরক্ষণ করুন",
+        Unlock: "আনলক",
+        "Welcome back": "আবার স্বাগতম",
+        "Lock now": "এখনই লক করুন",
+        "PIN must be exactly 4 digits.": "পিন ঠিক ৪ সংখ্যার হতে হবে।",
+        "Incorrect PIN. Try again.": "ভুল পিন। আবার চেষ্টা করুন।",
+        "Simulation only; not a security boundary.":
+          "এটি শুধু অনুকরণ; প্রকৃত নিরাপত্তা নয়।",
+        "This removes settings, chats, notes, models, timers, and memory from this prototype.":
+          "এই প্রোটোটাইপের সেটিংস, চ্যাট, নোট, মডেল, টাইমার এবং স্মৃতি মুছে যাবে।",
+        "Delete everything": "সব মুছুন",
+        Skip: "এড়িয়ে যান",
+        Continue: "চালিয়ে যান",
+        "Get started": "শুরু করুন",
+        "Private. Offline. Yours.": "ব্যক্তিগত। অফলাইন। আপনার।",
+        "ZORO acts, not just chats": "জোরো শুধু কথা নয়, কাজও করে",
+        "Pick a model for your phone": "আপনার ফোনের মডেল বেছে নিন",
+        "Copied to clipboard": "ক্লিপবোর্ডে কপি হয়েছে",
+        "Note saved": "নোট সংরক্ষিত",
+        "Action cancelled": "কাজ বাতিল হয়েছে",
+        "Model selected": "মডেল বেছে নেওয়া হয়েছে",
+        "File attached (simulated)": "ফাইল যুক্ত হয়েছে (অনুকরণ)",
+        "No cloud. No account. Just you.":
+          "ক্লাউড নয়। অ্যাকাউন্ট নয়। শুধু আপনি।",
+        "Tell ZORO something to remember…": "মনে রাখার মতো একটি তথ্য লিখুন…",
+        "What would you like to save?": "কী সংরক্ষণ করতে চান?",
+        "New note": "নতুন নোট",
+        Save: "সংরক্ষণ করুন",
+        "Live Hugging Face catalog · internet required":
+          "সরাসরি Hugging Face তালিকা · ইন্টারনেট প্রয়োজন",
+        "Preloaded for this demo": "এই ডেমোর জন্য আগে থেকেই আছে",
+        "Simulation · no model files are downloaded":
+          "অনুকরণ · কোনো মডেল ফাইল ডাউনলোড হয় না",
+        Stop: "থামান",
+        Finished: "শেষ",
+        Dismiss: "সরিয়ে দিন",
+        "Choose a GGUF file": "একটি GGUF ফাইল বেছে নিন",
+        "Downloads continue as you explore.":
+          "অন্য স্ক্রিনেও ডাউনলোড চলতে থাকবে।",
+        "On-device": "ডিভাইসেই",
+        "Private by design": "গোপনীয়তাই মূলনীতি",
+        "Ready when you are": "আপনার জন্য প্রস্তুত",
+        "No account needed": "অ্যাকাউন্টের প্রয়োজন নেই",
+        "Local model": "স্থানীয় মডেল",
+        "Action ready": "কাজ প্রস্তুত",
+      };
+      Object.assign(bn, {
+        "No GGUF models found": "কোনো GGUF মডেল পাওয়া যায়নি",
+        "Search failed. Check your internet connection.":
+          "অনুসন্ধান ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করুন।",
+        "Loading…": "লোড হচ্ছে…",
+        "Size unavailable": "ফাইলের আকার পাওয়া যায়নি",
+        "Search queries and model listings use Hugging Face. Chats and notes stay on your device.":
+          "অনুসন্ধান ও মডেল তালিকার জন্য Hugging Face ব্যবহার করা হয়। চ্যাট ও নোট আপনার ডিভাইসেই থাকে।",
+      });
+      const t = (s) => (state.settings.language === "bn" ? bn[s] || s : s);
+      const button = (label, action, ico = "", cls = "secondary", extra = "") =>
+        `<button type="button" class="${cls}" data-action="${action}" ${extra}>${ico ? icon(ico) : ""}${esc(t(label))}</button>`;
+      const ib = (label, action, ico, extra = "") =>
+        `<button type="button" class="icon-btn" aria-label="${esc(t(label))}" title="${esc(t(label))}" data-action="${action}" ${extra}>${icon(ico)}</button>`;
+      /* 06 — One application state; only durable preferences are stored */
+      const baseModels = [
+        {
+          id: "qwen15",
+          name: "Qwen 2.5 1.5B",
+          size: 1.12,
+          fit: "good",
+          downloaded: true,
+        },
+        { id: "qwen3", name: "Qwen 2.5 3B", size: 2.1, fit: "slow" },
+        { id: "qwen7", name: "Qwen 2.5 7B", size: 4.43, fit: "large" },
+        { id: "gemma2", name: "Gemma 2 2B", size: 1.6, fit: "good" },
+        { id: "llama1", name: "Llama 3.2 1B", size: 0.8, fit: "good" },
+      ];
+      const defaults = () => ({
+        prompt:
+          "You are ZORO, a helpful, private AI assistant. Be clear, thoughtful, and ask before taking action.",
+        tone: "Friendly",
+        tools: { timer: true, alarm: true, note: true },
+        ask: true,
+        language: "en",
+        lock: false,
+        pin: "",
+        wifi: true,
+      });
+      const state = {
+        screen: "chat",
+        previous: "chat",
+        sheet: null,
+        drawer: false,
+        modal: null,
+        onboard: 0,
+        onboardDone: false,
+        locked: false,
+        settings: defaults(),
+        models: baseModels.map((m) => ({
+          ...m,
+          quant: "Q4_K_M",
+          downloaded: !!m.downloaded,
+        })),
+        activeModel: "qwen15",
+        notes: [],
+        facts: [],
+        chats: [],
+        chatId: null,
+        timers: [],
+        alarms: [],
+        downloads: [],
+        stream: null,
+        draft: "",
+        attachment: null,
+        historyQuery: "",
+        hfQuery: "",
+        hfSearched: false,
+        hfLoading: false,
+        hfRequest: 0,
+        hfResults: [],
+        hfError: false,
+        fileRequest: 0,
+        files: [],
+        filesLoading: false,
+        filesError: false,
+        viewportHeight: window.visualViewport?.height || window.innerHeight,
+        keyboardOpen: false,
+        repo: null,
+        toastTimer: null,
+        pendingFocus: null,
+        storageAvailable: true,
+      };
+      function load() {
+        try {
+          const s = JSON.parse(localStorage.getItem("zoro.v1") || "null");
+          if (!s || s.version !== 1) return;
+          if (s.settings && typeof s.settings === "object") {
+            const p = s.settings;
+            state.settings = {
+              ...defaults(),
+              ...p,
+              tools: { ...defaults().tools, ...p.tools },
+            };
+            if (!["en", "bn"].includes(p.language))
+              state.settings.language = "en";
+            if (!["Friendly", "Professional", "Concise"].includes(p.tone))
+              state.settings.tone = "Friendly";
+            state.settings.lock = !!p.lock && /^\d{4}$/.test(p.pin || "");
+          }
+          if (Array.isArray(s.notes))
+            state.notes = s.notes.filter(
+              (n) =>
+                n && typeof n.text === "string" && typeof n.id === "string",
+            );
+          if (Array.isArray(s.facts))
+            state.facts = s.facts.filter(
+              (f) =>
+                f && typeof f.text === "string" && typeof f.id === "string",
+            );
+          if (Array.isArray(s.models)) {
+            const clean = s.models.filter(
+              (m) =>
+                m &&
+                typeof m.id === "string" &&
+                typeof m.name === "string" &&
+                Number.isFinite(m.size) &&
+                m.size > 0 &&
+                ["good", "slow", "large"].includes(m.fit),
+            );
+            if (clean.length)
+              state.models = clean.map((m) => ({
+                ...m,
+                downloaded: !!m.downloaded,
+              }));
+          }
+          state.activeModel =
+            state.models.find(
+              (m) =>
+                m.id === s.activeModel && m.downloaded && m.fit !== "large",
+            )?.id ||
+            state.models.find((m) => m.downloaded && m.fit !== "large")?.id ||
+            null;
+          state.onboardDone = !!s.onboardDone;
+          state.locked = state.settings.lock;
+        } catch (e) {
+          state.storageAvailable = false;
+        }
+      }
+      function persist() {
+        try {
+          localStorage.setItem(
+            "zoro.v1",
+            JSON.stringify({
+              version: 1,
+              settings: state.settings,
+              notes: state.notes,
+              facts: state.facts,
+              models: state.models,
+              activeModel: state.activeModel,
+              onboardDone: state.onboardDone,
+            }),
+          );
+        } catch (e) {
+          if (state.storageAvailable) {
+            state.storageAvailable = false;
+            toast(
+              "Storage unavailable. Changes last for this session only.",
+              true,
+            );
+          }
+        }
+      }
+      const uid = () =>
+        Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const chat = () => state.chats.find((c) => c.id === state.chatId);
+      const model = () => state.models.find((m) => m.id === state.activeModel);
+      function toast(text, error = false) {
+        clearTimeout(state.toastTimer);
+        document.getElementById("toast").innerHTML =
+          `<div class="toast ${error ? "error" : ""}">${icon(error ? "info" : "check")}<span>${esc(t(text))}</span></div>`;
+        state.toastTimer = setTimeout(
+          () => (document.getElementById("toast").innerHTML = ""),
+          3300,
+        );
+      }
+      function navigate(screen) {
+        state.previous = state.screen;
+        state.screen = screen;
+        closeOverlay(false);
+        render();
+      }
+      function head(title, extra = "") {
+        return `<header class="screen-head">${ib("Back", "back", "back")}<h2>${esc(t(title))}</h2>${extra}</header>`;
+      }
+      function empty(ico, title, desc = "") {
+        return `<div class="empty">${icon(ico)}<h3>${esc(t(title))}</h3>${desc ? `<p>${esc(t(desc))}</p>` : ""}</div>`;
+      }
+      function toggle(key, value) {
+        return `<button type="button" class="switch" role="switch" aria-checked="${!!value}" aria-label="${esc(t(key.startsWith("tool:") ? { timer: "Timer", alarm: "Alarm", note: "Notes" }[key.slice(5)] : { ask: "Ask before acting", lock: "App lock", wifi: "Wi-Fi only" }[key]))}" data-action="toggle" data-key="${key}"></button>`;
+      }
+      function avatar() {
+        return `<div class="avatar">${icon("spark")}</div>`;
+      }
+      /* 07 — Primary render functions */
+      function render() {
+        document.documentElement.lang = state.settings.language;
+        const main = document.getElementById("main");
+        if (state.locked) {
+          main.innerHTML = renderLock();
+          return;
+        }
+        if (!state.onboardDone) {
+          main.innerHTML = renderOnboarding();
+          return;
+        }
+        const renders = {
+          chat: renderChat,
+          settings: renderSettings,
+          notes: renderNotes,
+          activity: renderActivity,
+          downloads: renderDownloads,
+          hf: renderHF,
+          files: renderFiles,
+        };
+        main.innerHTML = (renders[state.screen] || renderChat)();
+        if (state.screen === "chat") {
+          resizeInput();
+          scrollChat();
+        }
+        renderOverlay();
+      }
+      function renderOnboarding() {
+        const slides = [
+          {
+            title: "Private. Offline.<br><em>Yours.</em>",
+            bn: "ব্যক্তিগত। অফলাইন।<br><em>আপনার।</em>",
+            text: "Meet your personal AI. Right on your phone.<br>No cloud, no tracking, no compromises.",
+            local:
+              "আপনার ব্যক্তিগত এআই, আপনার ফোনেই। কোনো ক্লাউড নয়, ট্র্যাকিং নয়।",
+            tag: "YOUR OWN LITTLE SUPERPOWER",
+            one: "On-device",
+            two: "Private by design",
+            ico: "shield",
+          },
+          {
+            title: "ZORO acts,<br><em>not just chats.</em>",
+            bn: "শুধু কথা নয়।<br><em>কাজও করে।</em>",
+            text: "ZORO acts, not just chats. Set timers, plan your morning, and save your ideas — with you in control.",
+            local:
+              "জোরো শুধু কথা নয়, কাজও করে। টাইমার দিন, সকাল সাজান ও ভাবনা লিখে রাখুন।",
+            tag: "AN ASSISTANT THAT TAKES ACTION",
+            one: "Action ready",
+            two: "Ask before acting",
+            ico: "timer",
+          },
+          {
+            title: "Pick a model<br><em>for your phone.</em>",
+            bn: "ছোট মডেল।<br><em>বড় সম্ভাবনা।</em>",
+            text: "Pick a model for your phone. Start light with Qwen 2.5 1.5B, or find your perfect fit. You can change it anytime.",
+            local:
+              "ফোনের জন্য একটি মডেল বেছে নিন। Qwen 2.5 1.5B দিয়ে শুরু করুন। যেকোনো সময় বদলাতে পারবেন।",
+            tag: "BUILT TO FIT YOUR PHONE",
+            one: "6 GB RAM",
+            two: "Local model",
+            ico: "phone",
+          },
+        ];
+        const s = slides[state.onboard];
+        return `<section class="onboarding"><div class="onboard-top"><div class="brand">${icon("spark")}ZORO</div>${button("Skip", "onboard-skip", "", "skip")}</div><div class="onboard-art"><div class="orbit">${avatar()}<div class="orbit-chip one">${icon(s.ico)}${esc(t(s.one))}</div><div class="orbit-chip two">${icon("check")}${esc(t(s.two))}</div></div></div><div class="onboard-copy"><div class="eyebrow" style="font-size:9px;margin-bottom:17px">${state.settings.language === "bn" ? "আপনার ব্যক্তিগত সহকারী" : s.tag}</div><h1>${state.settings.language === "bn" ? s.bn : s.title}</h1><p>${state.settings.language === "bn" ? s.local : s.text}</p></div><div class="onboard-bottom"><div class="dots" aria-label="Onboarding slides">${slides.map((_, i) => `<button data-action="slide" data-index="${i}" aria-label="Slide ${i + 1}" aria-current="${state.onboard === i ? "step" : "false"}" class="${state.onboard === i ? "active" : ""}"></button>`).join("")}</div><button class="primary wide" data-action="onboard-next">${esc(t(state.onboard === 2 ? "Get started" : "Continue"))}${icon("back").replace("<svg", '<svg style="transform:rotate(180deg)"')}</button><p class="onboard-fine">${icon("lock")}${esc(t("No cloud. No account. Just you."))}</p></div></section>`;
+      }
+      function renderChat() {
+        const c = chat();
+        return `<section class="screen"><header class="app-top"><div class="toprow">${ib("History", "history", "history")}${ib("New chat", "new-chat", "new")}<button class="model-chip" data-action="models" aria-label="${esc(t("Models"))}"><span>${esc(model()?.name || t("Select"))}</span>${icon("down")}</button>${ib("Settings", "settings", "settings")}</div><div class="offline"><span class="dot"></span>${esc(t("Running fully on-device"))}</div></header><div class="scroll" id="chat-scroll" role="log" aria-live="polite" aria-label="${esc(t("History"))}" aria-busy="${!!state.stream}">${c?.messages.length ? c.messages.map(renderMessage).join("") : renderWelcome()}</div><div class="composer-zone">${state.attachment ? `<div class="attachment">${icon("file")}${esc(state.attachment)}${ib("Delete", "detach", "close")}</div>` : ""}<div class="composer">${ib("More options", "plus", "plus")}<textarea id="message-input" rows="1" aria-label="${esc(t("Message ZORO…"))}" placeholder="${esc(t("Message ZORO…"))}">${esc(state.draft)}</textarea>${ib("Microphone", "mic", "mic")}<button class="icon-btn send" data-action="${state.stream ? "stop" : "send"}" aria-label="${esc(t(state.stream ? "Stop generating" : "Send message"))}" ${!state.stream && !state.draft.trim() ? "disabled" : ""}>${icon(state.stream ? "stop" : "send")}</button></div><div class="composer-foot">${icon("shield")}${esc(t("Prototype · Simulated AI, real privacy"))}</div></div></section>`;
+      }
+      function renderWelcome() {
+        const labels = [
+          "Set a timer for 10 minutes",
+          "Set an alarm for 7:00 AM",
+          "Save a note",
+          "Explain quantum computing simply",
+        ];
+        return `<div class="welcome">${avatar()}<div class="wordmark">ZORO</div><h1>${esc(t("How can I help you today?"))}</h1><p>${esc(t("A little intelligence. All yours."))}</p><div class="suggestions">${labels.map((s, i) => `<button class="suggestion" data-action="suggest" data-index="${i}">${icon(["timer", "alarm", "note", "spark"][i])}<span>${esc(t(s))}</span></button>`).join("")}</div><div class="local-caption">${icon("lock")}${esc(t("Your thoughts stay on your device"))}</div></div>`;
+      }
+      function renderMessage(m) {
+        if (m.role === "user")
+          return `<article class="message user" data-message="${m.id}"><div class="bubble">${esc(m.text)}${m.attachment ? `<div class="row" style="font-size:11px;margin-top:8px">${icon("file")}${esc(m.attachment)}</div>` : ""}</div></article>`;
+        const live = state.stream?.messageId === m.id;
+        return `<article class="message assistant" data-message="${m.id}"><div class="msg-label">${icon("spark")}ZORO <span>· ${esc(t("On-device"))}</span></div><div class="bubble">${m.text ? esc(m.text) : live ? '<span class="typing"><i></i><i></i><i></i></span>' : "…"}${live && m.text ? '<span class="cursor"></span>' : ""}</div>${m.action && !live ? renderAction(m) : ""}${!live ? `<div class="msg-tools">${button("Copy", "copy", "copy", "", `data-id="${m.id}"`)}${button("Regenerate", "regenerate", "refresh", "", `data-id="${m.id}" ${state.stream ? "disabled" : ""}`)}</div>` : ""}</article>`;
+      }
+      function renderAction(m) {
+        const a = m.action;
+        const timer = state.timers.find((x) => x.id === a.resultId);
+        return `<div class="action-card"><div class="row"><div class="tool-icon">${icon(a.type)}</div><div class="grow"><h3>${esc(a.title)}</h3><small>${esc(t(a.type === "note" ? "Notes" : a.type === "timer" ? "Timer" : "Alarm"))} · ${esc(t("On-device"))}</small></div></div><p>${esc(a.detail)}</p>${a.status === "pending" ? `<div class="buttons">${button("Confirm", "confirm-action", "check", "primary", `data-id="${m.id}"`)}${button("Cancel", "cancel-action", "", "secondary", `data-id="${m.id}"`)}</div>` : `<div class="action-status" style="${a.status === "cancelled" ? "color:var(--muted)" : ""}">${icon(a.status === "done" ? "check" : "close")}${esc(t(a.status === "done" ? "Done" : "Cancelled"))}</div>${timer ? `<div class="countdown" data-countdown="${timer.id}">${formatTime(timer.ends - Date.now())}</div>` : ""}`}</div>`;
+      }
+      function renderSettings() {
+        return `<section class="screen">${head("Settings")}<div class="scroll"><div class="section-title">${esc(t("AI Personalization"))}</div><label class="form-label" for="system-prompt">${esc(t("System prompt"))}</label><textarea id="system-prompt" class="field" rows="3" maxlength="2000">${esc(state.settings.prompt)}</textarea><small style="display:block;margin-top:8px;line-height:1.5">${esc(t("This prototype simulates inference and downloads."))}</small><label class="form-label" style="margin-top:19px">${esc(t("Tone"))}</label><div class="tone-options">${["Friendly", "Professional", "Concise"].map((x) => `<button data-action="tone" data-value="${x}" class="${state.settings.tone === x ? "chosen" : ""}" aria-pressed="${state.settings.tone === x}">${esc(t(x))}</button>`).join("")}</div><div class="section-title">${esc(t("Agent Tools"))}</div><div class="card settings-card">${[
+          ["timer", "Timer"],
+          ["alarm", "Alarm"],
+          ["note", "Notes"],
+        ]
+          .map(
+            ([key, label]) =>
+              `<div class="switch-row"><div class="row">${icon(key)}<strong>${esc(t(label))}</strong></div>${toggle("tool:" + key, state.settings.tools[key])}</div>`,
+          )
+          .join(
+            "",
+          )}<div class="switch-row"><div><strong>${esc(t("Ask before acting"))}</strong><small>${esc(t("Review each action first"))}</small></div>${toggle("ask", state.settings.ask)}</div></div><div class="section-title">${esc(t("Memory"))}</div>${state.facts.length ? state.facts.map((f) => `<div class="fact"><p class="grow">${esc(f.text)}</p>${ib("Delete", "delete-fact", "trash", `data-id="${f.id}"`)}</div>`).join("") : `<small>${esc(t("No remembered facts yet."))}</small>`}${button("Add a fact", "add-fact", "plus", "link wide")}<div class="section-title">${esc(t("Language"))}</div><select class="field" id="language" aria-label="${esc(t("Language"))}"><option value="en" ${state.settings.language === "en" ? "selected" : ""}>English</option><option value="bn" ${state.settings.language === "bn" ? "selected" : ""}>বাংলা</option></select><div class="section-title">${esc(t("Data and Privacy"))}</div><div class="card settings-card"><div class="switch-row"><div><strong>${esc(t("App lock"))}</strong><small>${esc(t("Protect with a 4-digit PIN"))}</small></div>${toggle("lock", state.settings.lock)}</div>${state.settings.lock ? button("Lock now", "lock-now", "lock", "link wide") : ""}</div>${button("Download manager", "downloads", "download", "secondary wide", 'style="margin-top:12px;justify-content:flex-start"')}${button("Delete all data", "delete-all", "trash", "danger wide", 'style="margin-top:12px"')}<div class="section-title">${esc(t("About"))}</div><div class="card"><div class="row" style="margin-bottom:10px;color:#abb8ff">${icon("spark")}<h3>ZORO <span class="muted" style="font-weight:400">/ 1.0</span></h3></div><p style="font-size:12px;color:var(--muted)">${esc(t("Search queries and model listings use Hugging Face. Chats and notes stay on your device."))}</p><p style="font-size:10px;color:#7c869e;margin-top:8px">${esc(t("This prototype simulates inference and downloads."))}</p></div></div></section>`;
+      }
+      function renderNotes() {
+        return `<section class="screen">${head("Notes", ib("New note", "new-note", "plus"))}<div class="scroll">${state.notes.length ? `<div class="section-title">${state.notes.length} ${esc(t("Saved"))} · ${esc(t("On-device"))}</div>${state.notes.map((n) => `<article class="note">${icon("note")}<div class="grow"><p>${esc(n.text)}</p><small>${esc(new Date(n.created).toLocaleDateString(state.settings.language === "bn" ? "bn-BD" : "en-US", { month: "short", day: "numeric" }))}</small></div>${ib("Delete", "delete-note", "trash", `data-id="${n.id}"`)}</article>`).join("")}` : empty("note", "No notes yet", "Ask ZORO to save something worth remembering.")}</div></section>`;
+      }
+      function renderActivity() {
+        return `<section class="screen">${head("Active timers and alarms")}<div class="scroll"><div class="notice">${icon("info")}${esc(t("Timers and alarms run only while this prototype is open."))}</div>${!state.timers.length && !state.alarms.length ? empty("timer", "Nothing ticking yet", "Ask ZORO to set a timer or an alarm.") : ""}${state.timers.length ? `<div class="section-title">${esc(t("Timer"))}</div>` : ""}${state.timers.map((x) => `<div class="card" style="margin-bottom:10px"><div class="row between"><h3>${esc(x.title)}</h3>${ib("Stop", "delete-timer", "close", `data-id="${x.id}"`)}</div><div class="countdown" data-countdown="${x.id}">${formatTime(x.ends - Date.now())}</div><small>${esc(t(x.fired ? "Finished" : "Active"))}</small></div>`).join("")}${state.alarms.length ? `<div class="section-title">${esc(t("Alarm"))}</div>` : ""}${state.alarms.map((x) => `<div class="card row" style="margin-bottom:10px">${icon("alarm")}<div class="grow"><h2>${esc(x.time)}</h2><small>${esc(t(x.fired ? "Finished" : "Active"))} · ${esc(new Date(x.at).toLocaleDateString(state.settings.language === "bn" ? "bn-BD" : "en-US", { month: "short", day: "numeric" }))}</small></div>${ib("Delete", "delete-alarm", "trash", `data-id="${x.id}"`)}</div>`).join("")}</div></section>`;
+      }
+      function fitBadge(m) {
+        return `<span class="pill ${m.fit === "large" ? "red" : m.fit === "slow" ? "amber" : ""}">${esc(t(m.fit === "large" ? "Too large" : m.fit === "slow" ? "May be slow" : "Runs well"))}</span>`;
+      }
+      function renderDownloads() {
+        return `<section class="screen">${head("Downloads", ib("Models", "models", "plus"))}<div class="scroll"><div class="switch-row" style="margin-bottom:16px"><div><strong>${esc(t("Wi-Fi only"))}</strong><small>${esc(t("Simulated connection: Wi-Fi"))}</small></div>${toggle("wifi", state.settings.wifi)}</div><div class="notice" style="margin-bottom:20px">${icon("info")}${esc(t("Simulation · no model files are downloaded"))}</div><div id="download-list">${renderDownloadList()}</div></div></section>`;
+      }
+      function renderDownloadList() {
+        const pending = state.downloads.filter((d) => d.status !== "done");
+        const completed = state.models.filter((m) => m.downloaded);
+        return `${pending
+          .map((d) => {
+            const m = state.models.find((m) => m.id === d.modelId);
+            return `<div class="card download-card"><div class="row">${icon("download")}<div class="grow"><h3>${esc(m.name)}</h3><small>${esc(m.quant)} · ${m.size} GB</small></div></div><div class="progress-track" role="progressbar" aria-label="${esc(m.name)}" aria-valuenow="${Math.floor(d.progress)}" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" style="width:${d.progress}%"></div></div><div class="download-meta"><span>${d.status === "paused" ? esc(t("Paused")) : d.speed.toFixed(1) + " MB/s"}</span><span>${Math.floor(d.progress)}%</span></div><div class="download-actions">${button(d.status === "paused" ? "Resume" : "Pause", "pause-download", d.status === "paused" ? "play" : "pause", "secondary", `data-id="${d.id}"`)}${button("Cancel", "cancel-download", "close", "secondary", `data-id="${d.id}"`)}</div></div>`;
+          })
+          .join(
+            "",
+          )}${completed.length ? `<div class="section-title">${esc(t("Completed"))}</div>` : ""}${completed.map((m) => `<div class="card download-card"><div class="row"><div class="tool-icon">${icon("check")}</div><div class="grow"><h3>${esc(m.name)}</h3><small>${m.size} GB · ${esc(m.quant)}</small></div>${ib("Delete", "delete-model", "trash", `data-id="${m.id}"`)}</div></div>`).join("")}${!pending.length && !completed.length ? empty("download", "No downloads yet", "Choose a model to get started.") + button("Browse models", "models", "", "primary wide") : ""}`;
+      }
+      function renderHF() {
+        return `<section class="screen">${head("Hugging Face")}<div class="scroll"><div class="notice">${icon("info")}${esc(t("Community models, not tested by ZORO"))}</div><form id="search-form" class="search-row"><input id="hf-search" class="field" placeholder="${esc(t("Search GGUF models…"))}" aria-label="${esc(t("Search"))}" value="${esc(state.hfQuery)}" maxlength="100"><button class="primary" type="submit">${esc(t("Search"))}</button></form><small>${esc(t("Live Hugging Face catalog · internet required"))}</small><div id="hf-results">${renderResults()}</div></div></section>`;
+      }
+      function loading() {
+        return `<div class="empty" role="status"><span class="spinner" aria-hidden="true"></span><p>${esc(t("Loading…"))}</p></div>`;
+      }
+      function renderResults() {
+        if (state.hfLoading) return loading();
+        if (state.hfError)
+          return empty(
+            "info",
+            "Search failed. Check your internet connection.",
+          );
+        if (!state.hfSearched)
+          return empty("search", "Search to find downloadable GGUF models.");
+        return state.hfResults.length
+          ? state.hfResults
+              .map(
+                (r, index) =>
+                  `<button class="repo" data-action="open-repo" data-index="${index}"><div class="row"><h3 class="grow">${esc(r.id)}</h3>${icon("chevron")}</div><div class="meta"><span>${icon("download")}${esc(r.downloads || 0)}</span><span>${icon("heart")}${esc(r.likes || 0)}</span><span class="pill">GGUF</span></div></button>`,
+              )
+              .join("")
+          : empty("search", "No GGUF models found");
+      }
+      function updateResults() {
+        const el = document.getElementById("hf-results");
+        if (el) el.innerHTML = renderResults();
+      }
+      // Only public model metadata is requested. No credentials, chats or model bytes.
+      async function hfJSON(path) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+        try {
+          const response = await fetch(
+            `https://huggingface.co/api/models${path}`,
+            {
+              signal: controller.signal,
+              credentials: "omit",
+              referrerPolicy: "no-referrer",
+            },
+          );
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return await response.json();
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+      async function searchModels() {
+        const q = state.hfQuery.trim();
+        const request = ++state.hfRequest;
+        state.hfSearched = !!q;
+        state.hfLoading = !!q;
+        state.hfError = false;
+        state.hfResults = [];
+        updateResults();
+        if (!q) return;
+        try {
+          const results = await hfJSON(
+            `?search=${encodeURIComponent(q)}&filter=gguf&sort=downloads&limit=20`,
+          );
+          if (!Array.isArray(results)) throw new Error("Invalid model list");
+          if (request !== state.hfRequest) return;
+          state.hfResults = results.filter(
+            (r) => r && typeof r.id === "string",
+          );
+        } catch (error) {
+          if (request !== state.hfRequest) return;
+          state.hfError = true;
+        } finally {
+          if (request === state.hfRequest) {
+            state.hfLoading = false;
+            updateResults();
+          }
+        }
+      }
+      async function openRepo(index) {
+        const repo = state.hfResults[index]?.id;
+        if (!repo) return;
+        const request = ++state.fileRequest;
+        state.repo = repo;
+        state.files = [];
+        state.filesLoading = true;
+        state.filesError = false;
+        navigate("files");
+        try {
+          const data = await hfJSON(
+            `/${repo.split("/").map(encodeURIComponent).join("/")}?blobs=true`,
+          );
+          if (!Array.isArray(data.siblings))
+            throw new Error("Invalid file list");
+          if (request !== state.fileRequest) return;
+          state.files = data.siblings
+            .filter(
+              (f) =>
+                typeof f.rfilename === "string" && /\.gguf$/i.test(f.rfilename),
+            )
+            .map((f) => {
+              const bytes = f.size ?? f.lfs?.size;
+              const size =
+                Number.isFinite(bytes) && bytes > 0 ? bytes / 1e9 : null;
+              return {
+                id: `hf-${encodeURIComponent(repo + "/" + f.rfilename)}`,
+                name: f.rfilename,
+                repo,
+                size,
+                quant:
+                  f.rfilename
+                    .match(/(?:IQ|Q)\d[A-Z0-9_]*/i)?.[0]
+                    .toUpperCase() || "GGUF",
+                fit: size > 3.5 ? "large" : size > 1.8 ? "slow" : "good",
+                downloaded: false,
+              };
+            });
+        } catch (error) {
+          if (request !== state.fileRequest) return;
+          state.filesError = true;
+        } finally {
+          if (request === state.fileRequest) {
+            state.filesLoading = false;
+            if (state.screen === "files" && !state.locked) render();
+          }
+        }
+      }
+      function variants() {
+        return state.files;
+      }
+      function renderFiles() {
+        const content = state.filesLoading
+          ? loading()
+          : state.filesError
+            ? empty("info", "Search failed. Check your internet connection.")
+            : !state.files.length
+              ? empty("search", "No GGUF models found")
+              : state.files
+                  .map((m, i) =>
+                    m.size == null
+                      ? `<div class="model-card"><h3>${esc(m.name)}</h3><p class="meta">${esc(t("Size unavailable"))}</p>${button("Download", "download-model", "download", "secondary", "disabled")}</div>`
+                      : renderModelCard(
+                          state.models.find((x) => x.id === m.id) || m,
+                          `data-variant="${i}"`,
+                        ),
+                  )
+                  .join("");
+        return `<section class="screen">${head("Choose a GGUF file")}<div class="scroll"><div class="row" style="align-items:flex-start">${icon("folder")}<h3 style="overflow-wrap:anywhere;line-height:1.6">${esc(state.repo)}</h3></div><div class="notice" style="margin:18px 0">${icon("info")}${esc(t("Community models, not tested by ZORO"))}</div>${content}</div></section>`;
+      }
+      function renderModelCard(m, extra = "") {
+        const d = state.downloads.find(
+          (d) => d.modelId === m.id && d.status !== "done",
+        );
+        return `<div class="model-card ${state.activeModel === m.id ? "active" : ""}"><div class="row"><h3 class="grow">${esc(m.name)}</h3>${state.activeModel === m.id ? icon("spark") : ""}</div><div class="meta">${m.size} GB <span style="margin:0 5px">·</span> ${esc(m.quant)}</div><div class="row between model-bottom">${fitBadge(m)}${state.activeModel === m.id ? `<span class="selected">${icon("check")}${esc(t("Active"))}</span>` : d ? button(Math.floor(d.progress) + "%", "downloads", "download", "secondary") : button(m.downloaded ? "Select" : "Download", m.downloaded ? "select-model" : "download-model", m.downloaded ? "" : "download", m.downloaded ? "primary" : "secondary", `data-id="${m.id}" ${extra}`)}</div>${d ? `<div class="progress-track"><div class="progress-fill" style="width:${d.progress}%"></div></div>` : ""}</div>`;
+      }
+      /* 08 — Overlay renderer, dialogs, and keyboard focus */
+      function openSheet(name) {
+        state.pendingFocus = document.activeElement;
+        state.sheet = name;
+        state.drawer = false;
+        state.modal = null;
+        renderOverlay();
+        focusOverlay();
+      }
+      function closeOverlay(redraw = true) {
+        document.getElementById("main").inert = false;
+        const focus = state.pendingFocus;
+        state.sheet = null;
+        state.drawer = false;
+        state.modal = null;
+        state.pendingFocus = null;
+        document.getElementById("overlay").innerHTML = "";
+        if (redraw && focus?.isConnected) focus.focus();
+      }
+      function openModal(type) {
+        state.pendingFocus = document.activeElement;
+        state.sheet = null;
+        state.drawer = false;
+        state.modal = { type };
+        renderOverlay();
+        focusOverlay();
+      }
+      function focusOverlay() {
+        requestAnimationFrame(() =>
+          document
+            .querySelector("#overlay input,#overlay textarea,#overlay button")
+            ?.focus(),
+        );
+      }
+      function renderOverlay() {
+        document.getElementById("main").inert = !!(
+          state.drawer ||
+          state.modal ||
+          state.sheet
+        );
+        const target = document.getElementById("overlay");
+        if (state.drawer) {
+          target.innerHTML = renderHistory();
+          return;
+        }
+        if (state.modal) {
+          target.innerHTML = renderModal();
+          return;
+        }
+        if (!state.sheet) {
+          target.innerHTML = "";
+          return;
+        }
+        let title = "",
+          body = "";
+        if (state.sheet === "plus") {
+          title = "More options";
+          body = [
+            ["file", "Attach file", "Choose a sample file", "attach"],
+            ["note", "Notes", "Saved, just for you", "notes"],
+            [
+              "timer",
+              "Active timers and alarms",
+              "Keep track of your day",
+              "activity",
+            ],
+          ]
+            .map(
+              ([ico, label, desc, act]) =>
+                `<button class="sheet-menu" data-action="${act}"><div class="tool-icon">${icon(ico)}</div><div class="grow"><strong>${esc(t(label))}</strong><small>${esc(t(desc))}</small></div>${icon("chevron")}</button>`,
+            )
+            .join("");
+        }
+        if (state.sheet === "models") {
+          title = "Models";
+          body = `<div class="device-info">${icon("phone")}${esc(t("Your phone: 6 GB RAM"))}</div>${state.models.map((m) => renderModelCard(m)).join("")}<div style="margin:17px 0 8px">${button("Add models from Hugging Face", "hf", "plus", "secondary wide")}</div>${button("Download manager", "downloads", "download", "link wide")}<p style="font-size:10px;text-align:center;color:var(--muted);margin-top:6px">${esc(t("Simulation · no model files are downloaded"))}</p>`;
+        }
+        if (state.sheet === "attach") {
+          title = "Attach file";
+          body = `<div class="notice" style="margin-bottom:15px">${icon("info")}${esc(t("Choose a sample file"))} · ${esc(t("This prototype simulates inference and downloads."))}</div>${[
+            ["Meeting notes.txt", "4 KB"],
+            ["Weekend ideas.md", "2 KB"],
+            ["Reading list.txt", "1 KB"],
+          ]
+            .map(
+              ([name, size]) =>
+                `<button class="sheet-menu" data-action="attach-file" data-name="${name}"><div class="tool-icon">${icon("file")}</div><div class="grow"><strong>${name}</strong><small>${size} · ${esc(t("On-device"))}</small></div>${icon("plus")}</button>`,
+            )
+            .join("")}`;
+        }
+        target.innerHTML = `<section class="sheet" role="dialog" aria-modal="true" aria-label="${esc(t(title))}"><div class="handle"></div><header class="sheet-head"><h2>${esc(t(title))}</h2>${ib("Close", "close-overlay", "close")}</header><div class="sheet-content">${body}</div></section>`;
+      }
+      function historyGroup(timestamp) {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const yesterday = new Date(start);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return timestamp >= +start
+          ? "Today"
+          : timestamp >= +yesterday
+            ? "Yesterday"
+            : "Earlier";
+      }
+      function historyItems() {
+        const matches = state.chats.filter((c) =>
+          c.title.toLowerCase().includes(state.historyQuery.toLowerCase()),
+        );
+        return matches.length
+          ? ["Today", "Yesterday", "Earlier"]
+              .map((g) => {
+                const items = matches.filter(
+                  (c) => historyGroup(c.created) === g,
+                );
+                return !items.length
+                  ? ""
+                  : `<div class="section-title">${esc(t(g))}</div>${items.map((c) => `<div class="history-item ${state.chatId === c.id ? "current" : ""}"><button class="history-open" data-action="open-chat" data-id="${c.id}">${icon("chat")}<span>${esc(c.title)}</span></button>${ib("Delete", "delete-chat", "trash", `data-id="${c.id}"`)}</div>`).join("")}`;
+              })
+              .join("")
+          : empty(
+              "chat",
+              state.historyQuery ? "No matching chats" : "No chats yet",
+            );
+      }
+      function renderHistory() {
+        return `<aside class="drawer" role="dialog" aria-modal="true" aria-label="${esc(t("History"))}"><div class="sheet-head"><div class="brand">${icon("spark")}ZORO</div>${ib("Close", "close-overlay", "close")}</div>${button("New chat", "new-chat", "plus", "primary wide")}<input id="history-search" class="field" style="margin-top:18px" aria-label="${esc(t("Search chats…"))}" placeholder="${esc(t("Search chats…"))}" value="${esc(state.historyQuery)}"><div class="scroll" id="history-items">${historyItems()}</div><div class="drawer-foot">${icon("lock")}${esc(t("Session only · never uploaded"))}</div></aside>`;
+      }
+      function renderModal() {
+        const type = state.modal.type;
+        let title, body, buttons;
+        if (type === "delete-all") {
+          title = "Delete all data";
+          body = `<p>${esc(t("This removes settings, chats, notes, models, timers, and memory from this prototype."))}</p>`;
+          buttons =
+            button("Cancel", "close-overlay", "", "secondary") +
+            button("Delete everything", "reset", "", "danger");
+        } else if (type === "pin") {
+          title = "Set up app lock";
+          body = `<p>${esc(t("Simulation only; not a security boundary."))}</p><label class="form-label" for="pin-setup">${esc(t("Enter a 4-digit PIN"))}</label><input class="field pin" id="pin-setup" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><div class="error-text" id="pin-error" role="alert"></div>`;
+          buttons =
+            button("Cancel", "close-overlay", "", "secondary") +
+            button("Save PIN", "save-pin", "", "primary");
+        } else {
+          title = type === "fact" ? "Add a fact" : "New note";
+          body = `<label class="form-label" for="modal-text">${esc(t(type === "fact" ? "Tell ZORO something to remember…" : "What would you like to save?"))}</label><textarea id="modal-text" class="field" rows="4" maxlength="${type === "fact" ? 300 : 4000}"></textarea><div class="error-text" id="modal-error" role="alert"></div>`;
+          buttons =
+            button("Cancel", "close-overlay", "", "secondary") +
+            button("Save", "save-text", "", "primary");
+        }
+        return `<section class="modal" role="dialog" aria-modal="true" aria-label="${esc(t(title))}"><h2>${esc(t(title))}</h2>${body}<div class="buttons">${buttons}</div></section>`;
+      }
+      function renderLock() {
+        return `<section class="lock-screen">${avatar()}<h1>${esc(t("Welcome back"))}</h1><p>${esc(t("Enter a 4-digit PIN"))}</p><input id="unlock-pin" class="field pin" aria-label="${esc(t("Enter a 4-digit PIN"))}" type="password" inputmode="numeric" maxlength="4" autocomplete="off"><div class="error-text" id="unlock-error" role="alert"></div>${button("Unlock", "unlock", "lock", "primary wide")}<small>${esc(t("Simulation only; not a security boundary."))}</small></section>`;
+      }
+      /* 09 — Mock agent: intent parsing, streaming and actions */
+      function newChat() {
+        stopStream();
+        state.chatId = null;
+        state.draft = "";
+        state.attachment = null;
+        state.screen = "chat";
+        closeOverlay(false);
+        render();
+      }
+      function findMessage(id) {
+        for (const c of state.chats) {
+          const m = c.messages.find((m) => m.id === id);
+          if (m) return m;
+        }
+        return null;
+      }
+      function normalizeDigits(s) {
+        return s.replace(/[০-৯]/g, (c) => "০১২৩৪৫৬৭৮৯".indexOf(c));
+      }
+      function makeAnswer(text, attachment) {
+        const raw = text.trim(),
+          q = normalizeDigits(raw.toLowerCase());
+        let type = null,
+          action = null,
+          answer = "";
+        const bangla = state.settings.language === "bn";
+        if (/\btimer\b|countdown|টাইমার/.test(q)) type = "timer";
+        else if (/\balarm\b|wake me|অ্যালার্ম/.test(q)) type = "alarm";
+        else if (/\bnote\b|নোট/.test(q)) type = "note";
+        if (type && !state.settings.tools[type])
+          return {
+            text: bangla
+              ? "এই টুলটি বন্ধ আছে। সেটিংস থেকে চালু করুন।"
+              : `The ${type === "note" ? "Notes" : type} tool is turned off. Enable it in Settings → Agent Tools and ask me again.`,
+          };
+        if (type === "timer") {
+          const match = q.match(
+            /(\d+(?:\.\d+)?)\s*(seconds?|secs?|s\b|minutes?|mins?|m\b|hours?|hrs?|h\b|সেকেন্ড|মিনিট|ঘণ্টা)/,
+          );
+          if (!match)
+            return {
+              text: bangla
+                ? "কতক্ষণের টাইমার দেব? যেমন: ১০ মিনিটের টাইমার দিন।"
+                : "How long should the timer run? Try “Set a timer for 10 minutes” or “Timer for 30 seconds”.",
+            };
+          const amount = Number(match[1]),
+            unit = match[2];
+          const seconds = Math.round(
+            amount *
+              (/^(h|ঘণ্টা)/.test(unit)
+                ? 3600
+                : /^(s|সেকেন্ড)/.test(unit)
+                  ? 1
+                  : 60),
+          );
+          if (seconds < 1 || seconds > 86400)
+            return {
+              text: bangla
+                ? "১ সেকেন্ড থেকে ২৪ ঘণ্টার মধ্যে সময় দিন।"
+                : "Please choose a timer between 1 second and 24 hours.",
+            };
+          action = {
+            type,
+            title: bangla
+              ? `${match[1]} ${match[2]} টাইমার`
+              : `Set a timer for ${match[1]} ${match[2]}`,
+            detail: bangla
+              ? "নিশ্চিত করলেই সময় গণনা শুরু হবে।"
+              : "Your countdown starts when this action is confirmed.",
+            seconds,
+            status: "pending",
+          };
+          answer = bangla
+            ? "অবশ্যই। আপনার টাইমার প্রস্তুত।"
+            : "A little focus time? I’ve got you. Your timer is ready to start.";
+        } else if (type === "alarm") {
+          const match = q.match(
+            /(?:\bat\s+|\bfor\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/,
+          );
+          if (!match)
+            return {
+              text: bangla
+                ? "কখন অ্যালার্ম দেব? যেমন: সকাল ৭টার অ্যালার্ম দিন।"
+                : "What time should I set the alarm for? Try “Set an alarm for 7:00 AM”.",
+            };
+          let h = Number(match[1]),
+            min = Number(match[2] || 0);
+          const mer =
+            match[3] ||
+            (/সকাল/.test(q) ? "am" : /বিকাল|রাত/.test(q) ? "pm" : null);
+          if (min > 59 || h > 23 || (mer && (h < 1 || h > 12)))
+            return {
+              text: "Please enter a valid alarm time, such as 7:00 AM or 19:30.",
+            };
+          if (mer) h = (h % 12) + (mer === "pm" ? 12 : 0);
+          const at = new Date();
+          at.setHours(h, min, 0, 0);
+          if (+at <= Date.now()) at.setDate(at.getDate() + 1);
+          const time = `${h % 12 || 12}:${String(min).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+          action = {
+            type,
+            title: bangla ? `${time} অ্যালার্ম` : `Set alarm for ${time}`,
+            detail: bangla
+              ? "শুধু অ্যাপ খোলা থাকলে বাজবে।"
+              : "Next occurrence · in-app reminder, not a system alarm.",
+            at: +at,
+            time,
+            status: "pending",
+          };
+          answer = bangla
+            ? "আপনার অ্যালার্ম প্রস্তুত। নিচে নিশ্চিত করুন।"
+            : "Let’s make your morning a little easier. Here’s your alarm.";
+        } else if (type === "note") {
+          let content = raw
+            .replace(
+              /^.*?(?:\bnote\b|নোট)(?:\s+(?:that|saying))?\s*[:\-]?\s*/i,
+              "",
+            )
+            .trim();
+          if (!content || /^(রাখুন|করুন|save|please)$/i.test(content))
+            return {
+              text: bangla
+                ? "কী লিখে রাখব? “নোট: শুক্রবার বই কিনতে হবে” লিখুন।"
+                : "What would you like me to save? Try “Save a note: Pick up a book on Friday”.",
+            };
+          action = {
+            type,
+            title: bangla ? "একটি নোট রাখুন" : "Save a note",
+            detail: content,
+            content,
+            status: "pending",
+          };
+          answer = bangla
+            ? "লিখে রাখছি, শুধু আপনার ডিভাইসেই।"
+            : "Worth remembering. I’ll keep this in your private notes.";
+        } else if (/quantum|কোয়ান্টাম/.test(q)) {
+          answer = bangla
+            ? "সাধারণ কম্পিউটারের বিট হয় ০ অথবা ১। কোয়ান্টাম কম্পিউটারের কিউবিট মাপার আগে এই দুই অবস্থার মিশ্রণে থাকতে পারে।\n\nভাবুন একটি ঘুরতে থাকা কয়েন: মাটিতে পড়ার আগে সেটিকে শুধু হেড বা টেল বলা যায় না। এটি একটি সহজ উপমা। কোয়ান্টাম অ্যালগরিদম এই বৈশিষ্ট্য ব্যবহার করে কিছু বিশেষ সমস্যার সমাধান দ্রুত করতে পারে—সব সমস্যার নয়।"
+            : "A regular computer uses bits: tiny switches that are either 0 or 1. A quantum computer uses qubits, which can be in a combination of both states until measured.\n\nThink of a spinning coin instead of one lying flat. It’s an imperfect analogy, but a useful starting point.\n\nWith the right algorithms, qubits can help solve certain problems faster, like simulating molecules. They don’t make every task faster — and they’re not magic!";
+        } else if (/privacy|private|offline|data|গোপন|অফলাইন/.test(q)) {
+          answer = bangla
+            ? "আপনার কথা এখানেই থাকে। Hugging Face-এ মডেল খোঁজার সময় ইন্টারনেট ব্যবহার হয়। চ্যাট স্থানীয় থাকে। সেটিংস ও নোট এই ব্রাউজারে সংরক্ষিত হয়; চ্যাট শুধু এই সেশনে থাকে। উত্তরগুলো অনুকরণ, প্রকৃত মডেল নয়।"
+            : "Your space, your rules. Chat stays local; Hugging Face searches request public model metadata online. Notes and preferences stay in this browser’s local storage, and chats last only for this session.\n\nMy replies and model downloads are simulated — there’s no real LLM running here. You can clear everything in Settings → Delete all data.";
+        } else if (/remember|memory|মনে রাখ/.test(q)) {
+          answer = state.facts.length
+            ? (bangla
+                ? "আপনার সংরক্ষিত তথ্য:\n"
+                : "Here’s what you’ve asked me to remember:\n") +
+              state.facts.map((f) => "• " + f.text).join("\n")
+            : bangla
+              ? "সেটিংস → স্মৃতি থেকে তথ্য যোগ করতে পারেন।"
+              : "I don’t have any saved facts yet. Add one in Settings → Memory. You’re always in control of what stays.";
+        } else if (/hello|hey|hi\b|হ্যালো/.test(q)) {
+          answer = bangla
+            ? "হ্যালো! আমি জোরো, আপনার ব্যক্তিগত সহকারী। টাইমার, অ্যালার্ম বা নোট দিয়ে শুরু করবেন?"
+            : "Hey, I’m ZORO. A little intelligence, right here on your device. Want to start a timer, save an idea, or explore something new?";
+        } else if (attachment) {
+          answer = bangla
+            ? "এটি একটি নমুনা সংযুক্তি। প্রকৃত ফাইল পড়া হয়নি। আপনি লেখা পেস্ট করতে পারেন।"
+            : `I can see the sample attachment “${attachment}”. In this prototype, attaching a file is simulated — I haven’t read a real file. You can paste a note here to save it locally.`;
+        } else if (/help|can you|সাহায্য/.test(q)) {
+          answer = bangla
+            ? "টাইমার, অ্যালার্ম ও নোট দিয়ে সাহায্য করতে পারি। যেমন “৩০ সেকেন্ডের টাইমার দিন”। সবকিছু এই ডিভাইসেই থাকে।"
+            : "I can help you keep the little things in order. Try setting a timer, scheduling an in-app alarm, or saving a note. You can also ask me about quantum computing or how your privacy works.\n\nThis is a hands-on prototype, so my answers come from a small local library.";
+        } else {
+          answer = bangla
+            ? "আমি সাহায্য করতে প্রস্তুত। এই ডেমোতে উত্তরগুলো সীমিত। একটি টাইমার দিন, নোট রাখুন, বা কোয়ান্টাম কম্পিউটিং নিয়ে প্রশ্ন করুন। আপনার কথা এখানেই থাকবে।"
+            : "I’m here to help, and your thoughts stay right here. This demo uses a small set of local replies, so I can’t fully answer that just yet.\n\nTry “Set a timer for 30 seconds”, “Save a note: Take a walk”, or ask me to explain quantum computing.";
+        }
+        if (action && !state.settings.ask)
+          answer = bangla
+            ? "এখনই করে দিচ্ছি।"
+            : "On it. I’ll take care of that now.";
+        if (state.settings.tone === "Concise" && !bangla)
+          answer = action
+            ? "Ready. See the action below."
+            : answer.split("\n\n")[0];
+        if (state.settings.tone === "Professional" && !bangla)
+          answer = action
+            ? "The requested action has been prepared. Details are provided below."
+            : answer
+                .replace("Hey, I’m", "Hello. I am")
+                .replace(
+                  "I’m here to help, and",
+                  "I can assist with supported demo requests;",
+                );
+        return { text: answer, action };
+      }
+      function send(text) {
+        if (state.stream) return;
+        const input = (text ?? state.draft).trim();
+        if (!input) return;
+        if (!model()) {
+          toast("Choose a downloaded model first.", true);
+          openSheet("models");
+          return;
+        }
+        let c = chat();
+        if (!c) {
+          c = {
+            id: uid(),
+            title: input.slice(0, 65),
+            created: Date.now(),
+            messages: [],
+          };
+          state.chats.unshift(c);
+          state.chatId = c.id;
+        }
+        const attachment = state.attachment;
+        c.messages.push({ id: uid(), role: "user", text: input, attachment });
+        state.draft = "";
+        state.attachment = null;
+        const result = makeAnswer(input, attachment);
+        startStream(c, result);
+      }
+      function startStream(c, result, existing) {
+        const m = existing || { id: uid(), role: "assistant", text: "" };
+        if (!existing) c.messages.push(m);
+        m.text = "";
+        m.action = result.action || null;
+        const tokens = result.text.match(/\S+\s*|\s+/g) || [];
+        state.stream = {
+          chatId: c.id,
+          messageId: m.id,
+          tokens,
+          index: 0,
+          handle: null,
+        };
+        render();
+        state.stream.handle = setTimeout(streamStep, 440);
+      }
+      function streamStep() {
+        const stream = state.stream;
+        if (!stream) return;
+        const m = findMessage(stream.messageId);
+        if (!m) {
+          stopStream();
+          return;
+        }
+        m.text += stream.tokens[stream.index++] || "";
+        updateStreamDOM(m);
+        if (stream.index < stream.tokens.length)
+          stream.handle = setTimeout(streamStep, 35 + Math.random() * 30);
+        else {
+          state.stream = null;
+          if (m.action && !state.settings.ask) executeAction(m);
+          if (state.screen === "chat") renderChatPreservingDraft();
+        }
+      }
+      function updateStreamDOM(m) {
+        if (
+          state.screen !== "chat" ||
+          state.chatId !== state.stream.chatId ||
+          state.locked
+        )
+          return;
+        const scroll = document.getElementById("chat-scroll");
+        const follow =
+          scroll &&
+          scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 90;
+        const el = document.querySelector(`[data-message="${m.id}"] .bubble`);
+        if (el) el.innerHTML = esc(m.text) + '<span class="cursor"></span>';
+        if (follow) scrollChat();
+      }
+      function stopStream() {
+        if (!state.stream) return;
+        clearTimeout(state.stream.handle);
+        const m = findMessage(state.stream.messageId);
+        if (m) {
+          if (!m.text)
+            m.text =
+              state.settings.language === "bn"
+                ? "উত্তর থামানো হয়েছে।"
+                : "Response stopped.";
+          if (m.action) m.action.status = "cancelled";
+        }
+        state.stream = null;
+      }
+      function renderChatPreservingDraft() {
+        const input = document.getElementById("message-input");
+        const focused = document.activeElement === input;
+        const pos = input?.selectionStart;
+        render();
+        if (focused) {
+          const el = document.getElementById("message-input");
+          el?.focus();
+          if (el && pos != null) el.setSelectionRange(pos, pos);
+        }
+      }
+      function executeAction(m) {
+        const a = m?.action;
+        if (!a || a.status !== "pending") return;
+        if (!state.settings.tools[a.type]) {
+          toast("This tool is disabled in Settings.", true);
+          return;
+        }
+        a.resultId = uid();
+        a.status = "done";
+        if (a.type === "timer")
+          state.timers.push({
+            id: a.resultId,
+            title: a.title,
+            ends: Date.now() + a.seconds * 1000,
+            fired: false,
+          });
+        if (a.type === "alarm") {
+          if (a.at <= Date.now()) {
+            const next = new Date(a.at);
+            while (+next <= Date.now()) next.setDate(next.getDate() + 1);
+            a.at = +next;
+          }
+          state.alarms.push({
+            id: a.resultId,
+            time: a.time,
+            at: a.at,
+            fired: false,
+          });
+        }
+        if (a.type === "note") {
+          state.notes.unshift({
+            id: a.resultId,
+            text: a.content,
+            created: Date.now(),
+          });
+          persist();
+        }
+        toast(a.type === "note" ? "Note saved" : "Done");
+      }
+      function formatTime(ms) {
+        const s = Math.max(0, Math.ceil(ms / 1000)),
+          h = Math.floor(s / 3600);
+        return (
+          (h ? String(h).padStart(2, "0") + ":" : "") +
+          String(Math.floor(s / 60) % 60).padStart(2, "0") +
+          ":" +
+          String(s % 60).padStart(2, "0")
+        );
+      }
+      function scrollChat() {
+        const el = document.getElementById("chat-scroll");
+        if (el) el.scrollTop = el.scrollHeight;
+      }
+      function resizeInput() {
+        const el = document.getElementById("message-input");
+        if (el) {
+          el.style.height = "auto";
+          el.style.height = Math.min(el.scrollHeight, 115) + "px";
+        }
+      }
+      /* 10 — Downloads & clocks, independent of current screen */
+      function startDownload(id, variant) {
+        let m = state.models.find((m) => m.id === id);
+        if (!m && variant != null) {
+          m = variants()[Number(variant)];
+          if (!m) return;
+          state.models.push(m);
+        }
+        if (
+          !m ||
+          m.downloaded ||
+          state.downloads.some((d) => d.modelId === m.id && d.status !== "done")
+        )
+          return;
+        state.downloads.push({
+          id: uid(),
+          modelId: m.id,
+          progress: 0,
+          status: "running",
+          speed: 25 + Math.random() * 12,
+        });
+        navigate("downloads");
+        toast("Downloads continue as you explore.");
+      }
+      function updateDownloads() {
+        let changed = false;
+        for (const d of state.downloads) {
+          if (d.status !== "running") continue;
+          const m = state.models.find((m) => m.id === d.modelId);
+          if (!m) continue;
+          d.speed = 25 + Math.random() * 12;
+          d.progress = Math.min(
+            100,
+            d.progress + (d.speed / (m.size * 1024)) * 100,
+          );
+          changed = true;
+          if (d.progress >= 100) {
+            d.status = "done";
+            m.downloaded = true;
+            persist();
+            toast(`${m.name} — ${t("Completed")}`);
+          }
+        }
+        if (changed && !state.locked) {
+          if (state.screen === "downloads") {
+            const el = document.getElementById("download-list");
+            if (el) {
+              const focus = document.activeElement;
+              const id = focus?.dataset.id,
+                action = focus?.dataset.action;
+              el.innerHTML = renderDownloadList();
+              if (id && action)
+                el.querySelector(
+                  `[data-id="${id}"][data-action="${action}"]`,
+                )?.focus({ preventScroll: true });
+            }
+          }
+          if (state.sheet === "models") {
+            const sc = document.querySelector(".sheet-content");
+            const top = sc?.scrollTop || 0;
+            renderOverlay();
+            const next = document.querySelector(".sheet-content");
+            if (next) next.scrollTop = top;
+          }
+          if (state.screen === "files" && !state.sheet) render();
+        }
+      }
+      function tick() {
+        const now = Date.now();
+        document.getElementById("clock").textContent =
+          new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: false,
+          });
+        for (const x of state.timers) {
+          if (!x.fired && now >= x.ends) {
+            x.fired = true;
+            if (!state.locked)
+              toast(
+                state.settings.language === "bn"
+                  ? "টাইমার শেষ হয়েছে!"
+                  : "Timer finished. Time for your next thing!",
+              );
+            if (state.screen === "activity" && !state.locked) render();
+          }
+          document
+            .querySelectorAll(`[data-countdown="${x.id}"]`)
+            .forEach((el) => (el.textContent = formatTime(x.ends - now)));
+        }
+        for (const a of state.alarms) {
+          if (!a.fired && now >= a.at) {
+            a.fired = true;
+            if (!state.locked) toast(`${t("Alarm")} · ${a.time}`);
+            if (state.screen === "activity" && !state.locked) render();
+          }
+        }
+        updateDownloads();
+      }
+      /* 11 — Event delegation: no inline handlers, no HTML from user input */
+      document.addEventListener("click", async (e) => {
+        const b = e.target.closest("[data-action]");
+        if (!b) return;
+        const a = b.dataset.action,
+          id = b.dataset.id;
+        if (state.locked && a !== "unlock") return;
+        switch (a) {
+          case "onboard-next":
+            if (state.onboard < 2) {
+              state.onboard++;
+              render();
+            } else {
+              state.onboardDone = true;
+              persist();
+              render();
+              openSheet("models");
+            }
+            break;
+          case "onboard-skip":
+            state.onboardDone = true;
+            persist();
+            render();
+            break;
+          case "slide":
+            state.onboard = Number(b.dataset.index);
+            render();
+            break;
+          case "back":
+            navigate(state.screen === "files" ? "hf" : "chat");
+            break;
+          case "settings":
+          case "notes":
+          case "activity":
+          case "downloads":
+          case "hf":
+            navigate(a);
+            break;
+          case "models":
+            openSheet("models");
+            break;
+          case "plus":
+            openSheet("plus");
+            break;
+          case "attach":
+            openSheet("attach");
+            break;
+          case "attach-file":
+            state.attachment = b.dataset.name;
+            closeOverlay(false);
+            render();
+            toast("File attached (simulated)");
+            break;
+          case "detach":
+            state.attachment = null;
+            render();
+            break;
+          case "close-overlay":
+            closeOverlay();
+            break;
+          case "history":
+            state.pendingFocus = b;
+            state.drawer = true;
+            state.historyQuery = "";
+            renderOverlay();
+            focusOverlay();
+            break;
+          case "new-chat":
+            newChat();
+            break;
+          case "open-chat":
+            state.chatId = id;
+            state.screen = "chat";
+            state.draft = "";
+            state.attachment = null;
+            closeOverlay(false);
+            render();
+            break;
+          case "delete-chat":
+            if (state.stream?.chatId === id) stopStream();
+            state.chats = state.chats.filter((c) => c.id !== id);
+            if (state.chatId === id) state.chatId = null;
+            render();
+            break;
+          case "suggest": {
+            const s = [
+              "Set a timer for 10 minutes",
+              "Set an alarm for 7:00 AM",
+              "Save a note",
+              "Explain quantum computing simply",
+            ];
+            send(t(s[Number(b.dataset.index)]));
+            break;
+          }
+          case "send":
+            send();
+            break;
+          case "stop":
+            stopStream();
+            renderChatPreservingDraft();
+            break;
+          case "mic":
+            toast("Listening… (simulated)");
+            break;
+          case "copy": {
+            const m = findMessage(id);
+            if (!m) break;
+            try {
+              if (navigator.clipboard?.writeText)
+                await navigator.clipboard.writeText(m.text);
+              else {
+                const area = document.createElement("textarea");
+                area.value = m.text;
+                area.style.cssText = "position:fixed;opacity:0";
+                document.body.appendChild(area);
+                area.select();
+                let copied;
+                try {
+                  copied = document.execCommand("copy");
+                } finally {
+                  area.remove();
+                }
+                if (!copied) throw Error("copy");
+              }
+              toast("Copied to clipboard");
+            } catch (err) {
+              toast("Copy unavailable. Select the message text to copy.", true);
+            }
+            break;
+          }
+          case "regenerate": {
+            if (state.stream) break;
+            const c = chat(),
+              m = c?.messages.find((x) => x.id === id);
+            if (!m) break;
+            if (m.action?.status === "done") {
+              toast(
+                "This action already ran. Send a new request to repeat it.",
+                true,
+              );
+              break;
+            }
+            const index = c.messages.indexOf(m);
+            const u = c.messages
+              .slice(0, index)
+              .reverse()
+              .find((x) => x.role === "user");
+            if (u) startStream(c, makeAnswer(u.text, u.attachment), m);
+            break;
+          }
+          case "confirm-action":
+            executeAction(findMessage(id));
+            render();
+            break;
+          case "cancel-action": {
+            const m = findMessage(id);
+            if (m?.action?.status === "pending") {
+              m.action.status = "cancelled";
+              toast("Action cancelled");
+              render();
+            }
+            break;
+          }
+          case "delete-note":
+            state.notes = state.notes.filter((n) => n.id !== id);
+            persist();
+            render();
+            break;
+          case "delete-fact":
+            state.facts = state.facts.filter((n) => n.id !== id);
+            persist();
+            render();
+            break;
+          case "delete-timer":
+            state.timers = state.timers.filter((n) => n.id !== id);
+            render();
+            break;
+          case "delete-alarm":
+            state.alarms = state.alarms.filter((n) => n.id !== id);
+            render();
+            break;
+          case "new-note":
+            openModal("note");
+            break;
+          case "add-fact":
+            openModal("fact");
+            break;
+          case "save-text": {
+            const text = document.getElementById("modal-text").value.trim();
+            if (!text) {
+              document.getElementById("modal-error").textContent = t(
+                "What would you like to save?",
+              );
+              break;
+            }
+            const item = { id: uid(), text, created: Date.now() };
+            if (state.modal.type === "fact") state.facts.push(item);
+            else state.notes.unshift(item);
+            persist();
+            closeOverlay(false);
+            render();
+            toast("Saved");
+            break;
+          }
+          case "tone":
+            state.settings.tone = b.dataset.value;
+            persist();
+            b.parentElement.querySelectorAll("button").forEach((x) => {
+              x.classList.toggle("chosen", x === b);
+              x.setAttribute("aria-pressed", String(x === b));
+            });
+            break;
+          case "toggle": {
+            const key = b.dataset.key;
+            if (key === "lock" && !state.settings.lock) {
+              openModal("pin");
+              break;
+            }
+            let value;
+            if (key.startsWith("tool:")) {
+              const tool = key.slice(5);
+              value = state.settings.tools[tool] = !state.settings.tools[tool];
+            } else {
+              value = state.settings[key] = !state.settings[key];
+              if (key === "lock") state.settings.pin = "";
+            }
+            persist();
+            b.setAttribute("aria-checked", String(value));
+            if (key === "lock") render();
+            break;
+          }
+          case "save-pin": {
+            const pin = document.getElementById("pin-setup").value;
+            if (!/^\d{4}$/.test(pin)) {
+              document.getElementById("pin-error").textContent = t(
+                "PIN must be exactly 4 digits.",
+              );
+              break;
+            }
+            state.settings.pin = pin;
+            state.settings.lock = true;
+            persist();
+            closeOverlay(false);
+            render();
+            toast("Saved");
+            break;
+          }
+          case "lock-now":
+            stopStream();
+            state.locked = true;
+            closeOverlay(false);
+            clearTimeout(state.toastTimer);
+            document.getElementById("toast").innerHTML = "";
+            render();
+            break;
+          case "unlock":
+            if (
+              document.getElementById("unlock-pin").value === state.settings.pin
+            ) {
+              state.locked = false;
+              render();
+            } else
+              document.getElementById("unlock-error").textContent = t(
+                "Incorrect PIN. Try again.",
+              );
+            break;
+          case "delete-all":
+            openModal("delete-all");
+            break;
+          case "reset":
+            resetAll();
+            break;
+          case "download-model":
+            startDownload(id, b.dataset.variant);
+            break;
+          case "pause-download": {
+            const d = state.downloads.find((d) => d.id === id);
+            if (d) d.status = d.status === "paused" ? "running" : "paused";
+            render();
+            break;
+          }
+          case "cancel-download":
+            state.downloads = state.downloads.filter((d) => d.id !== id);
+            render();
+            break;
+          case "delete-model": {
+            const m = state.models.find((m) => m.id === id);
+            if (!m) break;
+            if (state.stream) {
+              toast("Stop the current reply before deleting a model.", true);
+              break;
+            }
+            m.downloaded = false;
+            state.downloads = state.downloads.filter((d) => d.modelId !== id);
+            if (state.activeModel === id)
+              state.activeModel =
+                state.models.find((m) => m.downloaded && m.fit !== "large")
+                  ?.id || null;
+            persist();
+            render();
+            break;
+          }
+          case "select-model": {
+            const m = state.models.find((m) => m.id === id);
+            if (!m) break;
+            if (m.fit === "large") {
+              toast("Not enough RAM for this model", true);
+              break;
+            }
+            if (state.stream) {
+              toast("Wait for the current reply or stop it first.", true);
+              break;
+            }
+            if (!m.downloaded) break;
+            state.activeModel = id;
+            persist();
+            closeOverlay(false);
+            state.screen = "chat";
+            render();
+            toast("Model selected");
+            break;
+          }
+          case "open-repo":
+            openRepo(Number(b.dataset.index));
+            break;
+        }
+      });
+      document.addEventListener("input", (e) => {
+        const el = e.target;
+        if (el.id === "message-input") {
+          state.draft = el.value;
+          resizeInput();
+          const send = document.querySelector('[data-action="send"]');
+          if (send) send.disabled = !el.value.trim();
+        }
+        if (el.id === "system-prompt") {
+          state.settings.prompt = el.value;
+          persist();
+        }
+        if (el.id === "history-search") {
+          state.historyQuery = el.value;
+          document.getElementById("history-items").innerHTML = historyItems();
+        }
+        if (el.id === "hf-search") state.hfQuery = el.value;
+        if (el.id === "pin-setup" || el.id === "unlock-pin")
+          el.value = el.value.replace(/\D/g, "");
+      });
+      document.addEventListener("change", (e) => {
+        if (e.target.id === "language") {
+          state.settings.language = e.target.value;
+          persist();
+          render();
+        }
+      });
+      document.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (e.target.id === "search-form") {
+          state.hfQuery = document.getElementById("hf-search").value;
+          searchModels();
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (
+          e.key === "Enter" &&
+          !e.shiftKey &&
+          !e.isComposing &&
+          e.target.id === "message-input"
+        ) {
+          e.preventDefault();
+          send();
+        }
+        if (e.key === "Enter" && e.target.id === "unlock-pin")
+          document.querySelector('[data-action="unlock"]').click();
+        if (e.key === "Escape") closeOverlay();
+        if (
+          e.key === "Tab" &&
+          document.getElementById("overlay").children.length
+        ) {
+          const nodes = [
+            ...document.querySelectorAll(
+              "#overlay button:not(:disabled),#overlay input,#overlay textarea,#overlay select",
+            ),
+          ];
+          const first = nodes[0],
+            last = nodes[nodes.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last?.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first?.focus();
+          }
+        }
+      });
+      document.getElementById("overlay").addEventListener("click", (e) => {
+        if (e.target.id === "overlay") closeOverlay();
+      });
+      function resetAll() {
+        stopStream();
+        state.hfRequest++;
+        state.fileRequest++;
+        try {
+          localStorage.removeItem("zoro.v1");
+        } catch (e) {}
+        Object.assign(state, {
+          settings: defaults(),
+          notes: [],
+          facts: [],
+          chats: [],
+          timers: [],
+          alarms: [],
+          downloads: [],
+          activeModel: null,
+          models: baseModels.map((m) => ({
+            ...m,
+            quant: "Q4_K_M",
+            downloaded: false,
+          })),
+          chatId: null,
+          draft: "",
+          attachment: null,
+          screen: "chat",
+          previous: "chat",
+          hfQuery: "",
+          hfSearched: false,
+          hfLoading: false,
+          repo: null,
+          hfResults: [],
+          hfError: false,
+          files: [],
+          filesLoading: false,
+          filesError: false,
+          locked: false,
+          onboardDone: true,
+        });
+        closeOverlay(false);
+        persist();
+        render();
+        toast("All local data deleted.");
+      }
+      // Hardware back in the Android shell closes an overlay before navigating home.
+      window.zoroBack = () => {
+        if (state.locked) return false;
+        if (state.sheet || state.drawer || state.modal) {
+          closeOverlay();
+          return true;
+        }
+        if (state.screen !== "chat") {
+          navigate(state.screen === "files" ? "hf" : "chat");
+          return true;
+        }
+        return false;
+      };
+      // WebView/browser keyboards may resize only the visual viewport. Avoid a
+      // fixed/minimum-height shell fighting that viewport or covering the footer.
+      function syncViewport() {
+        const height = window.visualViewport?.height || window.innerHeight;
+        const editing = /^(INPUT|TEXTAREA)$/.test(
+          document.activeElement?.tagName || "",
+        );
+        if (!editing && !state.keyboardOpen) state.viewportHeight = height;
+        state.viewportHeight = Math.max(state.viewportHeight, height);
+        state.keyboardOpen = editing && state.viewportHeight - height > 100;
+        document.documentElement.style.setProperty("--vh", `${height}px`);
+        document
+          .getElementById("phone")
+          .classList.toggle("keyboard-open", state.keyboardOpen);
+        requestAnimationFrame(scrollChat);
+      }
+      window.visualViewport?.addEventListener("resize", syncViewport);
+      window.addEventListener("resize", syncViewport);
+      document.addEventListener("focusin", (e) => {
+        if (e.target.id !== "message-input") return;
+        syncViewport();
+        const inputEl = e.target;
+        setTimeout(() => {
+          if (inputEl.isConnected && document.activeElement === inputEl) {
+            inputEl.scrollIntoView({ block: "end" });
+            scrollChat();
+          }
+        }, 300);
+      });
+      document.addEventListener("focusout", () =>
+        setTimeout(syncViewport, 300),
+      );
+      syncViewport();
+      load();
+      render();
+      tick();
+      setInterval(tick, 1000);
+    </script>
+  </body>
+</html>
