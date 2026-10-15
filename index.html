@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <meta name="theme-color" content="#0D0F14" />
     <meta
@@ -13,7 +13,7 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src https://huggingface.co; font-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <title>ZORO · Your intelligence. Your device.</title>
     <style>
@@ -134,11 +134,31 @@
         isolation: isolate;
         width: 100%;
         height: 100dvh;
-        min-height: 520px;
+        height: var(--vh, 100dvh);
+        min-height: 0;
         background: var(--bg);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+      }
+      #phone.keyboard-open .suggestions {
+        display: none;
+      }
+      .model-card h3 {
+        overflow-wrap: anywhere;
+      }
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
       .statusbar {
         height: 43px;
@@ -539,6 +559,7 @@
       }
       .composer-zone {
         padding: 12px 16px 4px;
+        padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
         background: linear-gradient(transparent, var(--bg) 18%);
         flex-shrink: 0;
       }
@@ -1456,7 +1477,7 @@
       }
       @media (min-width: 600px) {
         body {
-          min-height: 100vh;
+          min-height: var(--vh, 100dvh);
           display: grid;
           place-items: center;
           padding: 28px;
@@ -1469,8 +1490,8 @@
         }
         #phone {
           max-width: 400px;
-          height: min(850px, calc(100dvh - 56px));
-          min-height: 580px;
+          height: min(850px, calc(var(--vh, 100dvh) - 56px));
+          min-height: 0;
           border: 7px solid #252934;
           border-radius: 43px;
           box-shadow:
@@ -1780,8 +1801,8 @@
         "What would you like to save?": "কী সংরক্ষণ করতে চান?",
         "New note": "নতুন নোট",
         Save: "সংরক্ষণ করুন",
-        "Local mock catalog · no network requests":
-          "স্থানীয় নমুনা তালিকা · কোনো নেটওয়ার্ক অনুরোধ নেই",
+        "Live Hugging Face catalog · internet required":
+          "সরাসরি Hugging Face তালিকা · ইন্টারনেট প্রয়োজন",
         "Preloaded for this demo": "এই ডেমোর জন্য আগে থেকেই আছে",
         "Simulation · no model files are downloaded":
           "অনুকরণ · কোনো মডেল ফাইল ডাউনলোড হয় না",
@@ -1798,6 +1819,15 @@
         "Local model": "স্থানীয় মডেল",
         "Action ready": "কাজ প্রস্তুত",
       };
+      Object.assign(bn, {
+        "No GGUF models found": "কোনো GGUF মডেল পাওয়া যায়নি",
+        "Search failed. Check your internet connection.":
+          "অনুসন্ধান ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করুন।",
+        "Loading…": "লোড হচ্ছে…",
+        "Size unavailable": "ফাইলের আকার পাওয়া যায়নি",
+        "Search queries and model listings use Hugging Face. Chats and notes stay on your device.":
+          "অনুসন্ধান ও মডেল তালিকার জন্য Hugging Face ব্যবহার করা হয়। চ্যাট ও নোট আপনার ডিভাইসেই থাকে।",
+      });
       const t = (s) => (state.settings.language === "bn" ? bn[s] || s : s);
       const button = (label, action, ico = "", cls = "secondary", extra = "") =>
         `<button type="button" class="${cls}" data-action="${action}" ${extra}>${ico ? icon(ico) : ""}${esc(t(label))}</button>`;
@@ -1816,64 +1846,6 @@
         { id: "qwen7", name: "Qwen 2.5 7B", size: 4.43, fit: "large" },
         { id: "gemma2", name: "Gemma 2 2B", size: 1.6, fit: "good" },
         { id: "llama1", name: "Llama 3.2 1B", size: 0.8, fit: "good" },
-      ];
-      const catalog = [
-        {
-          name: "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
-          base: "Qwen 2.5 1.5B",
-          size: 1.12,
-          downloads: "124k",
-          likes: 842,
-        },
-        {
-          name: "Qwen/Qwen2.5-3B-Instruct-GGUF",
-          base: "Qwen 2.5 3B",
-          size: 2.1,
-          downloads: "89k",
-          likes: 615,
-        },
-        {
-          name: "Qwen/Qwen2.5-7B-Instruct-GGUF",
-          base: "Qwen 2.5 7B",
-          size: 4.43,
-          downloads: "312k",
-          likes: 1802,
-        },
-        {
-          name: "bartowski/gemma-2-2b-it-GGUF",
-          base: "Gemma 2 2B",
-          size: 1.6,
-          downloads: "76k",
-          likes: 431,
-        },
-        {
-          name: "bartowski/Llama-3.2-1B-Instruct-GGUF",
-          base: "Llama 3.2 1B",
-          size: 0.8,
-          downloads: "201k",
-          likes: 921,
-        },
-        {
-          name: "bartowski/Llama-3.2-3B-Instruct-GGUF",
-          base: "Llama 3.2 3B",
-          size: 2.02,
-          downloads: "183k",
-          likes: 1104,
-        },
-        {
-          name: "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
-          base: "TinyLlama 1.1B",
-          size: 0.67,
-          downloads: "68k",
-          likes: 537,
-        },
-        {
-          name: "bartowski/Phi-3.5-mini-instruct-GGUF",
-          base: "Phi 3.5 Mini",
-          size: 2.39,
-          downloads: "54k",
-          likes: 388,
-        },
       ];
       const defaults = () => ({
         prompt:
@@ -1917,6 +1889,14 @@
         hfSearched: false,
         hfLoading: false,
         hfRequest: 0,
+        hfResults: [],
+        hfError: false,
+        fileRequest: 0,
+        files: [],
+        filesLoading: false,
+        filesError: false,
+        viewportHeight: window.visualViewport?.height || window.innerHeight,
+        keyboardOpen: false,
         repo: null,
         toastTimer: null,
         pendingFocus: null,
@@ -2136,7 +2116,7 @@
           )
           .join(
             "",
-          )}<div class="switch-row"><div><strong>${esc(t("Ask before acting"))}</strong><small>${esc(t("Review each action first"))}</small></div>${toggle("ask", state.settings.ask)}</div></div><div class="section-title">${esc(t("Memory"))}</div>${state.facts.length ? state.facts.map((f) => `<div class="fact"><p class="grow">${esc(f.text)}</p>${ib("Delete", "delete-fact", "trash", `data-id="${f.id}"`)}</div>`).join("") : `<small>${esc(t("No remembered facts yet."))}</small>`}${button("Add a fact", "add-fact", "plus", "link wide")}<div class="section-title">${esc(t("Language"))}</div><select class="field" id="language" aria-label="${esc(t("Language"))}"><option value="en" ${state.settings.language === "en" ? "selected" : ""}>English</option><option value="bn" ${state.settings.language === "bn" ? "selected" : ""}>বাংলা</option></select><div class="section-title">${esc(t("Data and Privacy"))}</div><div class="card settings-card"><div class="switch-row"><div><strong>${esc(t("App lock"))}</strong><small>${esc(t("Protect with a 4-digit PIN"))}</small></div>${toggle("lock", state.settings.lock)}</div>${state.settings.lock ? button("Lock now", "lock-now", "lock", "link wide") : ""}</div>${button("Download manager", "downloads", "download", "secondary wide", 'style="margin-top:12px;justify-content:flex-start"')}${button("Delete all data", "delete-all", "trash", "danger wide", 'style="margin-top:12px"')}<div class="section-title">${esc(t("About"))}</div><div class="card"><div class="row" style="margin-bottom:10px;color:#abb8ff">${icon("spark")}<h3>ZORO <span class="muted" style="font-weight:400">/ 1.0</span></h3></div><p style="font-size:12px;color:var(--muted)">${esc(t("ZORO v1.0, powered by on-device AI, no data leaves your phone."))}</p><p style="font-size:10px;color:#7c869e;margin-top:8px">${esc(t("This prototype simulates inference and downloads."))}</p></div></div></section>`;
+          )}<div class="switch-row"><div><strong>${esc(t("Ask before acting"))}</strong><small>${esc(t("Review each action first"))}</small></div>${toggle("ask", state.settings.ask)}</div></div><div class="section-title">${esc(t("Memory"))}</div>${state.facts.length ? state.facts.map((f) => `<div class="fact"><p class="grow">${esc(f.text)}</p>${ib("Delete", "delete-fact", "trash", `data-id="${f.id}"`)}</div>`).join("") : `<small>${esc(t("No remembered facts yet."))}</small>`}${button("Add a fact", "add-fact", "plus", "link wide")}<div class="section-title">${esc(t("Language"))}</div><select class="field" id="language" aria-label="${esc(t("Language"))}"><option value="en" ${state.settings.language === "en" ? "selected" : ""}>English</option><option value="bn" ${state.settings.language === "bn" ? "selected" : ""}>বাংলা</option></select><div class="section-title">${esc(t("Data and Privacy"))}</div><div class="card settings-card"><div class="switch-row"><div><strong>${esc(t("App lock"))}</strong><small>${esc(t("Protect with a 4-digit PIN"))}</small></div>${toggle("lock", state.settings.lock)}</div>${state.settings.lock ? button("Lock now", "lock-now", "lock", "link wide") : ""}</div>${button("Download manager", "downloads", "download", "secondary wide", 'style="margin-top:12px;justify-content:flex-start"')}${button("Delete all data", "delete-all", "trash", "danger wide", 'style="margin-top:12px"')}<div class="section-title">${esc(t("About"))}</div><div class="card"><div class="row" style="margin-bottom:10px;color:#abb8ff">${icon("spark")}<h3>ZORO <span class="muted" style="font-weight:400">/ 1.0</span></h3></div><p style="font-size:12px;color:var(--muted)">${esc(t("Search queries and model listings use Hugging Face. Chats and notes stay on your device."))}</p><p style="font-size:10px;color:#7c869e;margin-top:8px">${esc(t("This prototype simulates inference and downloads."))}</p></div></div></section>`;
       }
       function renderNotes() {
         return `<section class="screen">${head("Notes", ib("New note", "new-note", "plus"))}<div class="scroll">${state.notes.length ? `<div class="section-title">${state.notes.length} ${esc(t("Saved"))} · ${esc(t("On-device"))}</div>${state.notes.map((n) => `<article class="note">${icon("note")}<div class="grow"><p>${esc(n.text)}</p><small>${esc(new Date(n.created).toLocaleDateString(state.settings.language === "bn" ? "bn-BD" : "en-US", { month: "short", day: "numeric" }))}</small></div>${ib("Delete", "delete-note", "trash", `data-id="${n.id}"`)}</article>`).join("")}` : empty("note", "No notes yet", "Ask ZORO to save something worth remembering.")}</div></section>`;
@@ -2163,50 +2143,149 @@
           )}${completed.length ? `<div class="section-title">${esc(t("Completed"))}</div>` : ""}${completed.map((m) => `<div class="card download-card"><div class="row"><div class="tool-icon">${icon("check")}</div><div class="grow"><h3>${esc(m.name)}</h3><small>${m.size} GB · ${esc(m.quant)}</small></div>${ib("Delete", "delete-model", "trash", `data-id="${m.id}"`)}</div></div>`).join("")}${!pending.length && !completed.length ? empty("download", "No downloads yet", "Choose a model to get started.") + button("Browse models", "models", "", "primary wide") : ""}`;
       }
       function renderHF() {
-        return `<section class="screen">${head("Hugging Face")}<div class="scroll"><div class="notice">${icon("info")}${esc(t("Community models, not tested by ZORO"))}</div><form id="search-form" class="search-row"><input id="hf-search" class="field" placeholder="${esc(t("Search GGUF models…"))}" aria-label="${esc(t("Search"))}" value="${esc(state.hfQuery)}" maxlength="100"><button class="primary" type="submit">${esc(t("Search"))}</button></form><small>${esc(t("Local mock catalog · no network requests"))}</small><div id="hf-results">${renderResults()}</div></div></section>`;
+        return `<section class="screen">${head("Hugging Face")}<div class="scroll"><div class="notice">${icon("info")}${esc(t("Community models, not tested by ZORO"))}</div><form id="search-form" class="search-row"><input id="hf-search" class="field" placeholder="${esc(t("Search GGUF models…"))}" aria-label="${esc(t("Search"))}" value="${esc(state.hfQuery)}" maxlength="100"><button class="primary" type="submit">${esc(t("Search"))}</button></form><small>${esc(t("Live Hugging Face catalog · internet required"))}</small><div id="hf-results">${renderResults()}</div></div></section>`;
+      }
+      function loading() {
+        return `<div class="empty" role="status"><span class="spinner" aria-hidden="true"></span><p>${esc(t("Loading…"))}</p></div>`;
       }
       function renderResults() {
-        if (state.hfLoading) return empty("search", "Searching local catalog…");
+        if (state.hfLoading) return loading();
+        if (state.hfError)
+          return empty(
+            "info",
+            "Search failed. Check your internet connection.",
+          );
         if (!state.hfSearched)
           return empty("search", "Search to find downloadable GGUF models.");
-        const matches = catalog
-          .map((r, i) => ({ ...r, index: i }))
-          .filter((r) =>
-            r.name.toLowerCase().includes(state.hfQuery.toLowerCase().trim()),
-          );
-        return matches.length
-          ? matches
+        return state.hfResults.length
+          ? state.hfResults
               .map(
-                (r) =>
-                  `<button class="repo" data-action="open-repo" data-index="${r.index}"><div class="row"><h3 class="grow">${esc(r.name)}</h3>${icon("chevron")}</div><div class="meta"><span>${icon("download")}${r.downloads}</span><span>${icon("heart")}${r.likes}</span><span class="pill">GGUF</span></div></button>`,
+                (r, index) =>
+                  `<button class="repo" data-action="open-repo" data-index="${index}"><div class="row"><h3 class="grow">${esc(r.id)}</h3>${icon("chevron")}</div><div class="meta"><span>${icon("download")}${esc(r.downloads || 0)}</span><span>${icon("heart")}${esc(r.likes || 0)}</span><span class="pill">GGUF</span></div></button>`,
               )
               .join("")
-          : empty("search", "No models found", "Try Qwen, Llama, or Gemma.");
+          : empty("search", "No GGUF models found");
+      }
+      function updateResults() {
+        const el = document.getElementById("hf-results");
+        if (el) el.innerHTML = renderResults();
+      }
+      // Only public model metadata is requested. No credentials, chats or model bytes.
+      async function hfJSON(path) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+        try {
+          const response = await fetch(
+            `https://huggingface.co/api/models${path}`,
+            {
+              signal: controller.signal,
+              credentials: "omit",
+              referrerPolicy: "no-referrer",
+            },
+          );
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return await response.json();
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+      async function searchModels() {
+        const q = state.hfQuery.trim();
+        const request = ++state.hfRequest;
+        state.hfSearched = !!q;
+        state.hfLoading = !!q;
+        state.hfError = false;
+        state.hfResults = [];
+        updateResults();
+        if (!q) return;
+        try {
+          const results = await hfJSON(
+            `?search=${encodeURIComponent(q)}&filter=gguf&sort=downloads&limit=20`,
+          );
+          if (!Array.isArray(results)) throw new Error("Invalid model list");
+          if (request !== state.hfRequest) return;
+          state.hfResults = results.filter(
+            (r) => r && typeof r.id === "string",
+          );
+        } catch (error) {
+          if (request !== state.hfRequest) return;
+          state.hfError = true;
+        } finally {
+          if (request === state.hfRequest) {
+            state.hfLoading = false;
+            updateResults();
+          }
+        }
+      }
+      async function openRepo(index) {
+        const repo = state.hfResults[index]?.id;
+        if (!repo) return;
+        const request = ++state.fileRequest;
+        state.repo = repo;
+        state.files = [];
+        state.filesLoading = true;
+        state.filesError = false;
+        navigate("files");
+        try {
+          const data = await hfJSON(
+            `/${repo.split("/").map(encodeURIComponent).join("/")}?blobs=true`,
+          );
+          if (!Array.isArray(data.siblings))
+            throw new Error("Invalid file list");
+          if (request !== state.fileRequest) return;
+          state.files = data.siblings
+            .filter(
+              (f) =>
+                typeof f.rfilename === "string" && /\.gguf$/i.test(f.rfilename),
+            )
+            .map((f) => {
+              const bytes = f.size ?? f.lfs?.size;
+              const size =
+                Number.isFinite(bytes) && bytes > 0 ? bytes / 1e9 : null;
+              return {
+                id: `hf-${encodeURIComponent(repo + "/" + f.rfilename)}`,
+                name: f.rfilename,
+                repo,
+                size,
+                quant:
+                  f.rfilename
+                    .match(/(?:IQ|Q)\d[A-Z0-9_]*/i)?.[0]
+                    .toUpperCase() || "GGUF",
+                fit: size > 3.5 ? "large" : size > 1.8 ? "slow" : "good",
+                downloaded: false,
+              };
+            });
+        } catch (error) {
+          if (request !== state.fileRequest) return;
+          state.filesError = true;
+        } finally {
+          if (request === state.fileRequest) {
+            state.filesLoading = false;
+            if (state.screen === "files" && !state.locked) render();
+          }
+        }
       }
       function variants() {
-        const r = catalog[state.repo];
-        return ["Q4_K_M", "Q5_K_M", "Q8_0"].map((quant, i) => {
-          const size = +(r.size * [1, 1.22, 1.86][i]).toFixed(2);
-          return {
-            id: `community-${state.repo}-${i}`,
-            name: r.base,
-            quant,
-            size,
-            fit: size > 3.5 ? "large" : size > 1.8 ? "slow" : "good",
-            downloaded: false,
-          };
-        });
+        return state.files;
       }
       function renderFiles() {
-        const r = catalog[state.repo];
-        return `<section class="screen">${head("Choose a GGUF file")}<div class="scroll"><div class="row" style="align-items:flex-start">${icon("folder")}<h3 style="overflow-wrap:anywhere;line-height:1.6">${esc(r.name)}</h3></div><div class="notice" style="margin:18px 0">${icon("info")}${esc(t("Community models, not tested by ZORO"))}</div>${variants()
-          .map((m, i) =>
-            renderModelCard(
-              state.models.find((x) => x.id === m.id) || m,
-              `data-variant="${i}"`,
-            ),
-          )
-          .join("")}</div></section>`;
+        const content = state.filesLoading
+          ? loading()
+          : state.filesError
+            ? empty("info", "Search failed. Check your internet connection.")
+            : !state.files.length
+              ? empty("search", "No GGUF models found")
+              : state.files
+                  .map((m, i) =>
+                    m.size == null
+                      ? `<div class="model-card"><h3>${esc(m.name)}</h3><p class="meta">${esc(t("Size unavailable"))}</p>${button("Download", "download-model", "download", "secondary", "disabled")}</div>`
+                      : renderModelCard(
+                          state.models.find((x) => x.id === m.id) || m,
+                          `data-variant="${i}"`,
+                        ),
+                  )
+                  .join("");
+        return `<section class="screen">${head("Choose a GGUF file")}<div class="scroll"><div class="row" style="align-items:flex-start">${icon("folder")}<h3 style="overflow-wrap:anywhere;line-height:1.6">${esc(state.repo)}</h3></div><div class="notice" style="margin:18px 0">${icon("info")}${esc(t("Community models, not tested by ZORO"))}</div>${content}</div></section>`;
       }
       function renderModelCard(m, extra = "") {
         const d = state.downloads.find(
@@ -2249,7 +2328,11 @@
         );
       }
       function renderOverlay() {
-        document.getElementById("main").inert = !!(state.drawer || state.modal || state.sheet);
+        document.getElementById("main").inert = !!(
+          state.drawer ||
+          state.modal ||
+          state.sheet
+        );
         const target = document.getElementById("overlay");
         if (state.drawer) {
           target.innerHTML = renderHistory();
@@ -2505,8 +2588,8 @@
             : "A regular computer uses bits: tiny switches that are either 0 or 1. A quantum computer uses qubits, which can be in a combination of both states until measured.\n\nThink of a spinning coin instead of one lying flat. It’s an imperfect analogy, but a useful starting point.\n\nWith the right algorithms, qubits can help solve certain problems faster, like simulating molecules. They don’t make every task faster — and they’re not magic!";
         } else if (/privacy|private|offline|data|গোপন|অফলাইন/.test(q)) {
           answer = bangla
-            ? "আপনার কথা এখানেই থাকে। এই প্রোটোটাইপ কোনো নেটওয়ার্ক অনুরোধ পাঠায় না। সেটিংস ও নোট এই ব্রাউজারে সংরক্ষিত হয়; চ্যাট শুধু এই সেশনে থাকে। উত্তরগুলো অনুকরণ, প্রকৃত মডেল নয়।"
-            : "Your space, your rules. This prototype makes no network requests. Notes and preferences stay in this browser’s local storage, and chats last only for this session.\n\nMy replies and model downloads are simulated — there’s no real LLM running here. You can clear everything in Settings → Delete all data.";
+            ? "আপনার কথা এখানেই থাকে। Hugging Face-এ মডেল খোঁজার সময় ইন্টারনেট ব্যবহার হয়। চ্যাট স্থানীয় থাকে। সেটিংস ও নোট এই ব্রাউজারে সংরক্ষিত হয়; চ্যাট শুধু এই সেশনে থাকে। উত্তরগুলো অনুকরণ, প্রকৃত মডেল নয়।"
+            : "Your space, your rules. Chat stays local; Hugging Face searches request public model metadata online. Notes and preferences stay in this browser’s local storage, and chats last only for this session.\n\nMy replies and model downloads are simulated — there’s no real LLM running here. You can clear everything in Settings → Delete all data.";
         } else if (/remember|memory|মনে রাখ/.test(q)) {
           answer = state.facts.length
             ? (bangla
@@ -3135,8 +3218,7 @@
             break;
           }
           case "open-repo":
-            state.repo = Number(b.dataset.index);
-            navigate("files");
+            openRepo(Number(b.dataset.index));
             break;
         }
       });
@@ -3171,16 +3253,7 @@
         e.preventDefault();
         if (e.target.id === "search-form") {
           state.hfQuery = document.getElementById("hf-search").value;
-          state.hfSearched = !!state.hfQuery.trim();
-          state.hfLoading = state.hfSearched;
-          const request = ++state.hfRequest;
-          document.getElementById("hf-results").innerHTML = renderResults();
-          setTimeout(() => {
-            if (request !== state.hfRequest) return;
-            state.hfLoading = false;
-            const el = document.getElementById("hf-results");
-            if (el) el.innerHTML = renderResults();
-          }, 450);
+          searchModels();
         }
       });
       document.addEventListener("keydown", (e) => {
@@ -3222,6 +3295,7 @@
       function resetAll() {
         stopStream();
         state.hfRequest++;
+        state.fileRequest++;
         try {
           localStorage.removeItem("zoro.v1");
         } catch (e) {}
@@ -3248,6 +3322,11 @@
           hfSearched: false,
           hfLoading: false,
           repo: null,
+          hfResults: [],
+          hfError: false,
+          files: [],
+          filesLoading: false,
+          filesError: false,
           locked: false,
           onboardDone: true,
         });
@@ -3269,6 +3348,39 @@
         }
         return false;
       };
+      // WebView/browser keyboards may resize only the visual viewport. Avoid a
+      // fixed/minimum-height shell fighting that viewport or covering the footer.
+      function syncViewport() {
+        const height = window.visualViewport?.height || window.innerHeight;
+        const editing = /^(INPUT|TEXTAREA)$/.test(
+          document.activeElement?.tagName || "",
+        );
+        if (!editing && !state.keyboardOpen) state.viewportHeight = height;
+        state.viewportHeight = Math.max(state.viewportHeight, height);
+        state.keyboardOpen = editing && state.viewportHeight - height > 100;
+        document.documentElement.style.setProperty("--vh", `${height}px`);
+        document
+          .getElementById("phone")
+          .classList.toggle("keyboard-open", state.keyboardOpen);
+        requestAnimationFrame(scrollChat);
+      }
+      window.visualViewport?.addEventListener("resize", syncViewport);
+      window.addEventListener("resize", syncViewport);
+      document.addEventListener("focusin", (e) => {
+        if (e.target.id !== "message-input") return;
+        syncViewport();
+        const inputEl = e.target;
+        setTimeout(() => {
+          if (inputEl.isConnected && document.activeElement === inputEl) {
+            inputEl.scrollIntoView({ block: "end" });
+            scrollChat();
+          }
+        }, 300);
+      });
+      document.addEventListener("focusout", () =>
+        setTimeout(syncViewport, 300),
+      );
+      syncViewport();
       load();
       render();
       tick();

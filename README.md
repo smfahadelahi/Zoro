@@ -2,9 +2,9 @@
 
 **A private, offline AI-agent prototype. Your intelligence. Your device.**
 
-A self-contained HTML app and a permission-free Android wrapper. Dark Material-inspired UI, mobile-first at **360 × 800**, with a centered phone frame on desktop.
+A self-contained HTML app and a Android wrapper with internet permission for model discovery. Dark Material-inspired UI, mobile-first at **360 × 800**, with a centered phone frame on desktop.
 
-> **This is a simulation, not an LLM runtime.** Replies stream from a keyword-matched local answer library. Model downloads, community search, file attachments, and microphone input are simulated. There are no model weights, external libraries, fonts, analytics, or network requests in the HTML app.
+> **This is a simulation, not an LLM runtime.** Replies stream from a keyword-matched local answer library. Model downloads, file attachments, and microphone input are simulated. Community discovery uses the live Hugging Face API. There are no model weights, external libraries, fonts, analytics, or network requests outside Hugging Face metadata discovery in the HTML app.
 
 ## Download the Android APK
 
@@ -14,7 +14,7 @@ Open **[GitHub Releases](https://github.com/smfahadelahi/Zoro/releases)** and ch
 - **`ZORO.html`** — the same app as a single file; open in a modern browser.
 - **`SHA256SUMS.txt`** — checksums for both downloads.
 
-On Android, open the APK and, if asked, allow installation from the app you used to download it. This is a **debug-signed prerelease for testing**, not a Play Store or production release. No internet, microphone, storage, notification, or alarm permission is requested.
+On Android, open the APK and, if asked, allow installation from the app you used to download it. This is a **debug-signed prerelease for testing**, not a Play Store or production release. Only INTERNET permission is requested, for public Hugging Face model metadata. No microphone, storage, notification, or alarm permission is requested.
 
 The workflow caches the debug signing key across builds. If the cache expires, Android may require uninstalling a previous prototype before installing a newer one; uninstalling erases its local data. A production distribution should use a dedicated, securely managed release keystore.
 
@@ -42,12 +42,12 @@ Visit `http://localhost:8080`. A hosted origin and a `file://` URL have separate
 | Notes            | Saved locally, listed and deleted; manual creation from Notes                                                     |
 | Models           | Five defaults, RAM-fit badges for a simulated 6 GB phone, downloads and active selection                          |
 | Downloads        | Live size-dependent progress and speed, pause/resume/cancel, completed-model deletion; continue across navigation |
-| Community models | Eight bundled mock repositories; query filtering, loading/empty results, three GGUF variants each                 |
+| Community models | Live Hugging Face search (20 results), repository GGUF filenames/sizes, loading/empty/error states                |
 | History          | Session chats grouped Today / Yesterday / Earlier, search, open, delete, new chat                                 |
 | Personalization  | Editable saved prompt, three response tones, saved memory facts                                                   |
 | Language         | English / বাংলা dictionary for main navigation, forms, actions, settings and empty states                         |
 | App lock         | Four-digit PIN setup, validation, explicit lock and lock on reload                                                |
-| Privacy          | Delete-all confirmation, no runtime requests, defensive localStorage access, escaped user text                    |
+| Privacy          | Delete-all confirmation, only Hugging Face metadata requests, defensive localStorage access, escaped user text                    |
 
 ### Try these requests
 
@@ -65,11 +65,11 @@ Visit `http://localhost:8080`. A hosted origin and a `file://` URL have separate
 
 - **No inference or real model download.** Qwen 2.5 1.5B starts “preloaded” purely for this demo. Model selection updates app state, not a real runtime. The system prompt is saved but does not dynamically alter the canned answer library; tone and memory do affect supported replies.
 - **Alarms and timers are not Android services.** They run only while the app is open. Timers use absolute deadlines, so they catch up after browser throttling, but there are no background notifications, system alarms, audio alerts, or wake locks. Closing/reloading loses these session-only actions.
-- **Wi-Fi only is a saved simulated policy.** The simulated connection is always Wi-Fi; no network traffic actually occurs.
+- **Wi-Fi only is a saved simulated policy.** The simulated download connection is always Wi-Fi; model weights are not fetched. This toggle does not restrict the real metadata search.
 - **Attachments are sample filenames**, not a real file upload or file reader. The mic only shows a simulated listening toast.
 - **PIN is a UI prototype**, stored locally in plain text. It is not encryption, secure authentication, or protection against device/browser inspection. App lock takes effect on explicit lock and reload, not automatically whenever the app is backgrounded.
 - **Durable state:** settings (including PIN and onboarding completion), notes, memory facts, downloaded flags, and the active model. **Session-only state:** chats, pending downloads, timers, alarms, draft text, and attachments. Deleting all data clears these and removes every downloaded flag; the first-run walkthrough stays dismissed.
-- The Android wrapper uses an intercepted local `https://zoro.local/index.html` origin solely to serve bundled bytes. No DNS lookup or remote request is needed. Other resources are blocked, and the manifest has no internet permission. Browser clipboard availability varies; the app falls back to legacy copy and reports failures.
+- The Android wrapper uses an intercepted local `https://zoro.local/index.html` origin solely to serve bundled bytes. No DNS lookup or remote request is needed. Only GET requests to `https://huggingface.co/api/models` and its repository metadata paths are allowed; unrelated resources and navigation are blocked. Searches send your query to Hugging Face; chats, notes, memory and settings are never included. Browser clipboard availability varies; the app falls back to legacy copy and reports failures.
 
 ## Repository structure
 
@@ -77,7 +77,7 @@ Visit `http://localhost:8080`. A hosted origin and a `file://` URL have separate
 index.html                    Entire web app; single source of truth
 prototype/                    Android SDK-only Java WebView shell
   src/main/java/...           Local resource interception and back navigation
-  src/main/AndroidManifest.xml  No permissions; backups disabled
+  src/main/AndroidManifest.xml  INTERNET only; backups disabled
 app/                          Original experimental native app, preserved but not built
 .github/workflows/release.yml  Browser tests → APK build → GitHub prerelease
 tests/prototype.cjs            Browser end-to-end regression suite
@@ -100,7 +100,7 @@ gradlew.bat :prototype:assembleDebug
 
 Output: `prototype/build/outputs/apk/debug/prototype-debug.apk`.
 
-Gradle copies the root `index.html` into generated Android assets before building. Do not maintain a separate copy inside the module. First-time builds need internet for build tooling; the **installed app does not**.
+Gradle copies the root `index.html` into generated Android assets before building. Do not maintain a separate copy inside the module. First-time builds need internet for build tooling; the **installed app only needs internet for Hugging Face discovery**. Chat, notes and other simulations work offline.
 
 ## Automated releases
 
@@ -123,6 +123,10 @@ npm install --no-save playwright@1.64.1 @sparticuz/chromium@153.0.0
 node tests/prototype.cjs
 ```
 
-The suite checks onboarding; streaming/stop; confirmed, cancelled and automatic actions; live timers; alarm validation; safe note rendering; history search; tool settings; memory and prompt persistence; model downloads, pause/resume and RAM errors; community search; Bangla labels; PIN flows; reload behavior; delete-all; mobile/desktop layout; denied storage; console exceptions; and network silence. It runs against the file directly, with screenshots written into ignored `test-results/`.
+The suite checks onboarding; streaming/stop; confirmed, cancelled and automatic actions; live timers; alarm validation; safe note rendering; history search; tool settings; memory and prompt persistence; model downloads, pause/resume and RAM errors; community search; Bangla labels; PIN flows; reload behavior; delete-all; mobile/desktop layout; denied storage; console exceptions; keyboard/visual viewport resizing; and network traffic limited to explicitly requested Hugging Face metadata. It runs against the file directly, with screenshots written into ignored `test-results/`.
 
 Linux needs Chromium's usual shared libraries (available on GitHub's Ubuntu runner). For manual checks, also test Android keyboard behavior, hardware back, screen rotation and suspend/resume on a physical phone. Browser automation is not a substitute for device testing.
+
+### Keyboard and live discovery regression checks
+
+The browser suite intercepts the real Hugging Face API URLs with deterministic responses. It covers Enter/button submission, query encoding, HTTP/network failures, stale requests, GGUF-only filtering, missing sizes, and simulated downloads. Keyboard tests exercise both a resized content viewport and a visual-viewport-only resize. These tests do not prove physical-device IME behavior or live service availability; verify both on your Android phone.

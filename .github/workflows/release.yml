@@ -61,8 +61,9 @@ jobs:
           APK=prototype/build/outputs/apk/debug/prototype-debug.apk
           unzip -p "$APK" assets/index.html | cmp index.html
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions "$APK" > apk-permissions.txt
-          if grep -q uses-permission apk-permissions.txt; then
-            echo "::error::The prototype must not request any Android permissions"
+          grep -q "android.permission.INTERNET" apk-permissions.txt
+          if grep uses-permission apk-permissions.txt | grep -v "android.permission.INTERNET"; then
+            echo "::error::The prototype must only request INTERNET for Hugging Face metadata"
             exit 1
           fi
       - name: Prepare release files
@@ -85,7 +86,7 @@ jobs:
           ## ZORO — private, offline agent prototype
           Download **ZORO-v1.0.0-prototype.apk** below for Android 7.0+, or **ZORO.html** for any modern browser.
 
-          This is a fully interactive simulation, not a local LLM runtime. Replies, file attachments, microphone input, and model downloads are simulated. Timers and alarms work only while the prototype is open. Notes and preferences stay on the device. No internet permission or remote requests.
+          This is a fully interactive simulation, not a local LLM runtime. Replies, file attachments, microphone input, and model downloads are simulated. Timers and alarms work only while the prototype is open. Notes and preferences stay on the device. Hugging Face discovery uses live public metadata and requires internet; chats and notes stay local. Model downloads remain simulated. This build fixes keyboard/composer visibility.
 
           **Install:** open the APK and allow installation from your download app if Android asks. This is a debug-signed test build, not a production/Play Store release. Signing keys are cached between builds, but if the cache expires you may need to uninstall an older prototype first (which clears its local data). The PIN is a UI simulation, not encryption or production authentication.
 

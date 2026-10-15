@@ -1,4 +1,4 @@
-/** End-to-end checks run directly against the single offline file. */
+/** End-to-end checks run against the HTML file (HF responses are intercepted fixtures). */
 const { chromium } = require("playwright");
 const chromiumModule = require("@sparticuz/chromium");
 const bundledChromium = chromiumModule.default || chromiumModule;
@@ -9,7 +9,9 @@ const fs = require("node:fs");
 (async () => {
   const browser = await chromium.launch({
     executablePath: await bundledChromium.executablePath(),
-    args: bundledChromium.args,
+    args: bundledChromium.args.filter(
+      (arg) => !arg.includes("disable-web-security"),
+    ),
     headless: true,
   });
   const context = await browser.newContext({
@@ -22,6 +24,53 @@ const fs = require("node:fs");
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("request", (req) => {
     if (/^https?:/.test(req.url())) network.push(req.url());
+  });
+  // Real fetch paths with deterministic API responses; no external service dependency.
+  await page.route("https://huggingface.co/api/models**", async (route) => {
+    const url = new URL(route.request().url());
+    const q = url.searchParams.get("search");
+    if (q === "offline") return route.abort("internetdisconnected");
+    if (q === "server-error")
+      return route.fulfill({ status: 503, body: "Unavailable" });
+    const headers = {
+      "access-control-allow-origin": "*",
+      "content-type": "application/json",
+    };
+    const reply = (data) =>
+      route.fulfill({ headers, body: JSON.stringify(data) });
+    if (q !== null) {
+      assert.equal(url.searchParams.get("filter"), "gguf");
+      assert.equal(url.searchParams.get("sort"), "downloads");
+      assert.equal(url.searchParams.get("limit"), "20");
+      if (q === "no-such-repo") return reply([]);
+      await new Promise((resolve) =>
+        setTimeout(resolve, q === "stale" ? 800 : 100),
+      );
+      return reply(
+        q === "stale"
+          ? [{ id: "old/result" }]
+          : [
+              { id: "test/llama-real-repo", downloads: 123456, likes: 789 },
+              { id: "test/empty-repo", downloads: 42, likes: 1 },
+              { id: "test/error-repo", downloads: 10, likes: 0 },
+            ],
+      );
+    }
+    assert.equal(url.searchParams.get("blobs"), "true");
+    if (url.pathname.endsWith("error-repo"))
+      return route.fulfill({ status: 503, body: "Unavailable", headers });
+    if (url.pathname.endsWith("empty-repo"))
+      return reply({ siblings: [{ rfilename: "README.md", size: 123 }] });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return reply({
+      siblings: [
+        { rfilename: "README.md", size: 123 },
+        { rfilename: "model-Q4_K_M.gguf", size: 800000000 },
+        { rfilename: "nested/model-Q5_K_M.gguf", size: 1100000000 },
+        { rfilename: "model-Q8_0.GGUF", lfs: { size: 1600000000 } },
+        { rfilename: "missing-size.gguf" },
+      ],
+    });
   });
   const file = "file://" + path.resolve(__dirname, "../index.html");
   const click = (a) => page.locator(`[data-action="${a}"]`).first().click();
@@ -50,6 +99,43 @@ const fs = require("node:fs");
     360,
   );
   console.log("PASS onboarding, model picker, 360×800 layout");
+
+  // Exercise both content-resizing and visual-only keyboard behavior.
+  await page.locator("#message-input").focus();
+  await page.setViewportSize({ width: 360, height: 480 });
+  await page.waitForFunction(() => state.keyboardOpen);
+  await page.waitForTimeout(350);
+  assert.equal(await page.locator(".suggestions").isVisible(), false);
+  let box = await page.locator("#message-input").boundingBox();
+  assert.ok(box.y >= 0 && box.y + box.height <= 480);
+  await page.locator("#message-input").fill("Keyboard text stays visible");
+  assert.equal(
+    await page.locator("#message-input").inputValue(),
+    "Keyboard text stays visible",
+  );
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.waitForFunction(() => !state.keyboardOpen);
+  assert.equal(await page.locator(".suggestions").isVisible(), true);
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, "height", {
+      configurable: true,
+      get: () => 450,
+    });
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await page.waitForFunction(() => state.keyboardOpen);
+  box = await page.locator("#message-input").boundingBox();
+  assert.ok(box.y >= 0 && box.y + box.height <= 450);
+  await page.evaluate(() => {
+    delete window.visualViewport.height;
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await page.waitForFunction(() => !state.keyboardOpen);
+  await page.locator("#message-input").fill("");
+  assert.deepEqual(network, []);
+  console.log(
+    "PASS keyboard shrink, visual viewport, footer visibility and suggestion restore",
+  );
 
   await page.locator("#message-input").fill("Set a timer for 3 seconds");
   await click("send");
@@ -166,13 +252,50 @@ const fs = require("node:fs");
   await page.locator("#hf-search").fill("no-such-repo");
   await page.locator("#search-form button").click();
   await page.waitForFunction(() => !state.hfLoading);
-  assert.equal(await has("No models found"), true);
-  await page.locator("#hf-search").fill("llama");
+  assert.equal(await has("No GGUF models found"), true);
+  for (const q of ["offline", "server-error"]) {
+    await page.locator("#hf-search").fill(q);
+    await page.locator("#hf-search").press("Enter");
+    await page.waitForFunction(() => !state.hfLoading);
+    assert.equal(
+      await has("Search failed. Check your internet connection."),
+      true,
+    );
+  }
+  await page.locator("#hf-search").fill("stale");
+  await page.locator("#hf-search").press("Enter");
+  await page.waitForFunction(() => state.hfLoading);
+  assert.equal(await page.locator(".spinner").count(), 1);
+  await page.locator("#hf-search").fill("llama & tiny");
   await page.locator("#search-form button").click();
   await page.waitForFunction(() => !state.hfLoading);
   assert.equal(await page.locator(".repo").count(), 3);
+  await page.waitForTimeout(900);
+  assert.equal(await page.locator(".repo").count(), 3); // stale results must not overwrite
+  for (const [index, expected] of [
+    [1, "No GGUF models found"],
+    [2, "Search failed. Check your internet connection."],
+  ]) {
+    await page
+      .locator(`[data-action="open-repo"][data-index="${index}"]`)
+      .click();
+    await page.waitForFunction(() => !state.filesLoading);
+    assert.equal(await has(expected), true);
+    await click("back");
+  }
   await click("open-repo");
-  assert.equal(await page.locator(".model-card").count(), 3);
+  await page.waitForFunction(() => !state.filesLoading);
+  assert.equal(await page.locator(".model-card").count(), 4);
+  assert.equal(await page.evaluate(() => state.files[0].size), 0.8);
+  assert.equal(
+    await page.evaluate(() => state.files[1].name),
+    "nested/model-Q5_K_M.gguf",
+  );
+  assert.equal(await page.evaluate(() => state.files[2].size), 1.6);
+  assert.equal(
+    await page.locator('[data-action="download-model"]:disabled').count(),
+    1,
+  );
   await click("download-model");
   assert.equal(
     await page.evaluate(() => state.downloads.at(-1).status),
@@ -186,7 +309,7 @@ const fs = require("node:fs");
     0,
   );
   console.log(
-    "PASS mock community search, loading/empty/results, variants, cancel",
+    "PASS API search/Enter, metadata sizes, errors, empty/files, stale requests and simulated download",
   );
 
   await click("back");
@@ -269,9 +392,14 @@ const fs = require("node:fs");
   await blocked.locator("#language").selectOption("bn");
   assert.equal(await blocked.evaluate(() => state.settings.language), "bn");
   assert.deepEqual(errors, []);
-  assert.deepEqual(network, []);
+  assert.ok(
+    network.length > 0 &&
+      network.every((url) =>
+        url.startsWith("https://huggingface.co/api/models"),
+      ),
+  );
   console.log(
-    "PASS denied localStorage, zero console exceptions, zero network requests",
+    "PASS denied localStorage, zero console exceptions, only requested HF metadata traffic",
   );
   await browser.close();
 })().catch((error) => {

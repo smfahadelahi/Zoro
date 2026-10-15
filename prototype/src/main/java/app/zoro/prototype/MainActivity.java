@@ -14,7 +14,7 @@ import android.view.WindowInsetsController;
 import android.view.View;
 import java.io.ByteArrayInputStream;
 
-/** A permission-free shell. No JS/native bridge, remote pages, or file picker. */
+/** A local shell with allowlisted Hugging Face metadata requests. No JS/native bridge, remote pages, or file picker. */
 public final class MainActivity extends Activity {
     private static final String HOME = "https://zoro.local/index.html";
     private WebView webView;
@@ -43,7 +43,14 @@ public final class MainActivity extends Activity {
                         return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream("Bundled prototype is missing.".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
                     }
                 }
-                // Every URL other than the bundled document is blocked, including subresources.
+                // Only public model metadata may use the network. Navigation, weights,
+                // unrelated hosts and other subresources remain blocked.
+                android.net.Uri uri = request.getUrl();
+                if ("GET".equals(request.getMethod()) && "https".equals(uri.getScheme())
+                    && "huggingface.co".equals(uri.getHost())
+                    && ("/api/models".equals(uri.getPath()) || uri.getPath().startsWith("/api/models/"))) {
+                    return null;
+                }
                 return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked", java.util.Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
             }
         });

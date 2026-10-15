@@ -2,10 +2,10 @@
 
 - [ ] Browser regression suite passes (`node tests/prototype.cjs`).
 - [ ] `./gradlew :prototype:assembleDebug` succeeds.
-- [ ] APK contains bundled `assets/index.html`; no permissions in merged manifest.
+- [ ] APK contains bundled `assets/index.html`; only INTERNET permission in merged manifest.
 - [ ] Test install on Android 7.0+ with a current Android System WebView.
 - [ ] Onboarding, keyboard send, bottom sheets and hardware back work on a phone.
-- [ ] Airplane mode works; notes/settings survive relaunch.
+- [ ] Chat/notes work in airplane mode; live discovery shows a connection error offline; notes/settings survive relaunch.
 - [ ] Timers/alarms clearly described as in-app only.
 - [ ] UI PIN explicitly described as a simulation, not secure authentication.
 - [ ] Release includes APK, standalone HTML, SHA256 sums and limitations.

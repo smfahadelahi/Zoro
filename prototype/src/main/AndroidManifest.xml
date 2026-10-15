@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Intentionally no permissions, including INTERNET. -->
+<!-- Internet is used only for public Hugging Face model metadata. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <application android:allowBackup="false" android:usesCleartextTraffic="false"
         android:label="ZORO" android:icon="@drawable/ic_zoro" android:theme="@style/Theme.Zoro"
         android:supportsRtl="true">
