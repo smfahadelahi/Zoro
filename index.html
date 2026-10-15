@@ -2102,7 +2102,7 @@
       }
       function renderChat() {
         const c = chat();
-        return `<section class="screen"><header class="app-top"><div class="toprow">${ib("History", "history", "history")}${ib("New chat", "new-chat", "new")}<button class="model-chip" data-action="models" aria-label="${esc(t("Models"))}"><span>${esc(model()?.name || t("Select"))}</span>${icon("down")}</button>${ib("Settings", "settings", "settings")}</div><div class="offline"><span class="dot"></span>${esc(t("Running fully on-device"))}</div></header><div class="scroll" id="chat-scroll">${c?.messages.length ? c.messages.map(renderMessage).join("") : renderWelcome()}</div><div class="composer-zone">${state.attachment ? `<div class="attachment">${icon("file")}${esc(state.attachment)}${ib("Delete", "detach", "close")}</div>` : ""}<div class="composer">${ib("More options", "plus", "plus")}<textarea id="message-input" rows="1" aria-label="${esc(t("Message ZORO…"))}" placeholder="${esc(t("Message ZORO…"))}">${esc(state.draft)}</textarea>${ib("Microphone", "mic", "mic")}<button class="icon-btn send" data-action="${state.stream ? "stop" : "send"}" aria-label="${esc(t(state.stream ? "Stop generating" : "Send message"))}" ${!state.stream && !state.draft.trim() ? "disabled" : ""}>${icon(state.stream ? "stop" : "send")}</button></div><div class="composer-foot">${icon("shield")}${esc(t("Prototype · Simulated AI, real privacy"))}</div></div></section>`;
+        return `<section class="screen"><header class="app-top"><div class="toprow">${ib("History", "history", "history")}${ib("New chat", "new-chat", "new")}<button class="model-chip" data-action="models" aria-label="${esc(t("Models"))}"><span>${esc(model()?.name || t("Select"))}</span>${icon("down")}</button>${ib("Settings", "settings", "settings")}</div><div class="offline"><span class="dot"></span>${esc(t("Running fully on-device"))}</div></header><div class="scroll" id="chat-scroll" role="log" aria-live="polite" aria-label="${esc(t("History"))}" aria-busy="${!!state.stream}">${c?.messages.length ? c.messages.map(renderMessage).join("") : renderWelcome()}</div><div class="composer-zone">${state.attachment ? `<div class="attachment">${icon("file")}${esc(state.attachment)}${ib("Delete", "detach", "close")}</div>` : ""}<div class="composer">${ib("More options", "plus", "plus")}<textarea id="message-input" rows="1" aria-label="${esc(t("Message ZORO…"))}" placeholder="${esc(t("Message ZORO…"))}">${esc(state.draft)}</textarea>${ib("Microphone", "mic", "mic")}<button class="icon-btn send" data-action="${state.stream ? "stop" : "send"}" aria-label="${esc(t(state.stream ? "Stop generating" : "Send message"))}" ${!state.stream && !state.draft.trim() ? "disabled" : ""}>${icon(state.stream ? "stop" : "send")}</button></div><div class="composer-foot">${icon("shield")}${esc(t("Prototype · Simulated AI, real privacy"))}</div></div></section>`;
       }
       function renderWelcome() {
         const labels = [
@@ -2224,6 +2224,7 @@
         focusOverlay();
       }
       function closeOverlay(redraw = true) {
+        document.getElementById("main").inert = false;
         const focus = state.pendingFocus;
         state.sheet = null;
         state.drawer = false;
@@ -2248,6 +2249,7 @@
         );
       }
       function renderOverlay() {
+        document.getElementById("main").inert = !!(state.drawer || state.modal || state.sheet);
         const target = document.getElementById("overlay");
         if (state.drawer) {
           target.innerHTML = renderHistory();
